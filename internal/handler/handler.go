@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"github.com/Kuart/metric-collector/internal/metric"
 	"github.com/Kuart/metric-collector/internal/storage"
 	"github.com/Kuart/metric-collector/internal/template"
 	"github.com/go-chi/chi/v5"
@@ -10,22 +11,25 @@ import (
 )
 
 const (
-	notIntError    = "value is not int type"
-	notFloatError  = "value is not float type"
-	metricNotFound = "metric \"%s\" is not found"
+	notIntError     = "value is not int type"
+	notFloatError   = "value is not float type"
+	metricTypeError = "metric type not implemented"
+	metricNotFound  = "metric \"%s\" is not found"
 )
 
 func SetRoutes(r *chi.Mux) {
-	r.Get("/value/{name}", MetricValueHandler)
+	r.Get("/value/{type}/{name}", MetricValueHandler)
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/counter/{name}/{value}", CounterHandler)
 		r.Post("/gauge/{name}/{value}", GaugeHandler)
+		r.Post("/*", NotImplementedHandler)
 	})
 	r.Get("/", MetricsPageHandler)
 }
 
 func CounterHandler(w http.ResponseWriter, r *http.Request) {
-	name, valueString := getUrlParam(r)
+	name, valueString := chi.URLParam(r, "name"), chi.URLParam(r, "value")
+
 	value, err := strconv.ParseInt(valueString, 10, 64)
 
 	if err != nil {
@@ -37,7 +41,7 @@ func CounterHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GaugeHandler(w http.ResponseWriter, r *http.Request) {
-	name, valueString := getUrlParam(r)
+	name, valueString := chi.URLParam(r, "name"), chi.URLParam(r, "value")
 	value, err := strconv.ParseFloat(valueString, 64)
 
 	if err != nil {
@@ -49,18 +53,29 @@ func GaugeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func MetricValueHandler(w http.ResponseWriter, r *http.Request) {
-	name, _ := getUrlParam(r)
-	gauge, counter, status := storage.GetMetric(name)
+	metricType, name := chi.URLParam(r, "type"), chi.URLParam(r, "name")
 
-	if status == storage.CounterMetric {
-		w.Write([]byte(fmt.Sprint(counter)))
+	if metricType == metric.GaugeTypeName {
+		metric, ok := storage.GetGaugeMetric(name)
+
+		if !ok {
+			http.Error(w, fmt.Sprintf(metricNotFound, name), http.StatusNotFound)
+		}
+
+		w.Write([]byte(fmt.Sprint(metric)))
 		w.WriteHeader(http.StatusOK)
-	} else if status == storage.GaugeMetric {
-		w.Write([]byte(fmt.Sprint(gauge)))
+	} else if metricType == metric.CounterTypeName {
+		metric, ok := storage.GetCounterMetric(name)
+
+		if !ok {
+			http.Error(w, fmt.Sprintf(metricNotFound, name), http.StatusNotFound)
+		}
+		w.Write([]byte(fmt.Sprint(metric)))
 		w.WriteHeader(http.StatusOK)
 	} else {
 		http.Error(w, fmt.Sprintf(metricNotFound, name), http.StatusNotFound)
 	}
+
 }
 
 func MetricsPageHandler(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +85,10 @@ func MetricsPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	template.HtmlTemplate.Execute(w, renderData)
+}
+
+func NotImplementedHandler(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, metricTypeError, http.StatusNotImplemented)
 }
 
 func getUrlParam(r *http.Request) (string, string) {

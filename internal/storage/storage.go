@@ -8,12 +8,6 @@ type GaugeStorage map[string]metric.GaugeValue
 
 type CounterStorage map[string]metric.CounterValue
 
-const (
-	MetricNotFound = iota
-	GaugeMetric
-	CounterMetric
-)
-
 var gauge = &GaugeStorage{}
 var counter = &CounterStorage{}
 
@@ -45,20 +39,16 @@ func CounterUpdate(name string, value int64) {
 	(*counter)[name] += metric.CounterValue(value)
 }
 
-func GetMetric(name string) (metric.GaugeValue, metric.CounterValue, int) {
-	gaugeMetric, ok := (*gauge)[name]
+func GetGaugeMetric(name string) (metric.GaugeValue, bool) {
+	metric, ok := (*gauge)[name]
 
-	if ok {
-		return gaugeMetric, 0, GaugeMetric
-	}
+	return metric, ok
+}
 
-	counterMetric, ok := (*counter)[name]
+func GetCounterMetric(name string) (metric.CounterValue, bool) {
+	metric, ok := (*counter)[name]
 
-	if ok {
-		return gaugeMetric, counterMetric, CounterMetric
-	}
-
-	return gaugeMetric, counterMetric, MetricNotFound
+	return metric, ok
 }
 
 func CreateGauge() *GaugeStorage {

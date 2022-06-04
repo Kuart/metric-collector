@@ -41,8 +41,8 @@ func send[T metric.GaugeValue | metric.CounterValue](client *http.Client, metric
 
 func createUrl[T metric.GaugeValue | metric.CounterValue](metricType string, name string, value T) string {
 	if metricType == metric.GaugeTypeName {
-		return fmt.Sprintf("http://%s:%s/update/%s/%s/%f", Host, Port, metricType, name, value)
+		return fmt.Sprintf("http://%s:%s/update/%s/%s/%f", Host, Port, metricType, name, float64(value))
 	}
 
-	return fmt.Sprintf("http://%s:%s/update/%s/%s/%d", Host, Port, metricType, name, value)
+	return fmt.Sprintf("http://%s:%s/update/%s/%s/%d", Host, Port, metricType, name, int64(value))
 }
