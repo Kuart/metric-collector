@@ -20,11 +20,22 @@ const (
 func SetRoutes(r *chi.Mux) {
 	r.Get("/value/{type}/{name}", MetricValueHandler)
 	r.Route("/update", func(r chi.Router) {
-		r.Post("/counter/{name}/{value}", CounterHandler)
-		r.Post("/gauge/{name}/{value}", GaugeHandler)
-		r.Post("/*", NotImplementedHandler)
+		r.Post("/{type}/{name}/{value}", UpdateHandler)
 	})
 	r.Get("/", MetricsPageHandler)
+}
+
+func UpdateHandler(w http.ResponseWriter, r *http.Request) {
+	metricType := chi.URLParam(r, "type")
+
+	switch metricType {
+	case metric.GaugeTypeName:
+		GaugeHandler(w, r)
+	case metric.CounterTypeName:
+		CounterHandler(w, r)
+	default:
+		http.Error(w, metricTypeError, http.StatusNotImplemented)
+	}
 }
 
 func CounterHandler(w http.ResponseWriter, r *http.Request) {
@@ -85,12 +96,4 @@ func MetricsPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	template.HtmlTemplate.Execute(w, renderData)
-}
-
-func NotImplementedHandler(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, metricTypeError, http.StatusNotImplemented)
-}
-
-func getUrlParam(r *http.Request) (string, string) {
-	return chi.URLParam(r, "name"), chi.URLParam(r, "value")
 }

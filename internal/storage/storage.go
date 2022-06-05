@@ -32,7 +32,7 @@ func GetCounterStorage() CounterStorage {
 }
 
 func GaugeUpdate(name string, value float64) {
-	(*gauge)[name] += metric.GaugeValue(value)
+	(*gauge)[name] = metric.GaugeValue(value)
 }
 
 func CounterUpdate(name string, value int64) {
