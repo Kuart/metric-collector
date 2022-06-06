@@ -14,22 +14,31 @@ const (
 )
 
 func SendMetric(client *http.Client, gauge storage.GaugeStorage, counter metric.Counter) {
-	sendGauge(client, gauge)
+	parseGauge(client, gauge)
 	sendCounter(client, counter)
 }
 
-func sendGauge(client *http.Client, gauge storage.GaugeStorage) {
+func parseGauge(client *http.Client, gauge storage.GaugeStorage) {
 	for key, value := range gauge {
-		send(client, metric.GaugeTypeName, key, value)
+		sendGauge(client, key, value)
 	}
 }
 
 func sendCounter(client *http.Client, counter metric.Counter) {
-	send(client, metric.CounterTypeName, counter.Name, counter.Value)
+	pattern := "http://%s:%s/update/%s/%s/%d"
+	url := fmt.Sprintf(pattern, Host, Port, metric.CounterTypeName, counter.Name, int64(counter.Value))
+	response, err := client.Post(url, "text/plain", nil)
+
+	if err != nil {
+		log.Println(fmt.Sprintf("%s metric not sended, err: %s", counter.Name, err))
+	}
+
+	defer response.Body.Close()
 }
 
-func send[T metric.GaugeValue | metric.CounterValue](client *http.Client, metricType string, name string, value T) {
-	url := createUrl(metricType, name, value)
+func sendGauge(client *http.Client, name string, value metric.GaugeValue) {
+	pattern := "http://%s:%s/update/%s/%s/%f"
+	url := fmt.Sprintf(pattern, Host, Port, metric.GaugeTypeName, name, float64(value))
 	response, err := client.Post(url, "text/plain", nil)
 
 	if err != nil {
@@ -37,12 +46,4 @@ func send[T metric.GaugeValue | metric.CounterValue](client *http.Client, metric
 	}
 
 	defer response.Body.Close()
-}
-
-func createUrl[T metric.GaugeValue | metric.CounterValue](metricType string, name string, value T) string {
-	if metricType == metric.GaugeTypeName {
-		return fmt.Sprintf("http://%s:%s/update/%s/%s/%f", Host, Port, metricType, name, float64(value))
-	}
-
-	return fmt.Sprintf("http://%s:%s/update/%s/%s/%d", Host, Port, metricType, name, int64(value))
 }
