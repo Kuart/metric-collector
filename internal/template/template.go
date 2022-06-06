@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-var HtmlTemplate *template.Template
+var HTMLTemplate *template.Template
 
 func SetupMetricTemplate() {
 	bytes, err := os.ReadFile("internal/template/index.html")
@@ -15,7 +15,7 @@ func SetupMetricTemplate() {
 		log.Fatal(err)
 	}
 
-	HtmlTemplate, err = template.New("").Parse(string(bytes))
+	HTMLTemplate, err = template.New("").Parse(string(bytes))
 
 	if err != nil {
 		log.Fatal(err)

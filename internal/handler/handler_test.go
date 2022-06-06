@@ -35,6 +35,7 @@ func TestUpdateHandler(t *testing.T) {
 			h.ServeHTTP(w, request)
 			result := w.Result()
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
+			defer result.Body.Close()
 		})
 	}
 }
@@ -83,6 +84,7 @@ func TestCounterHandler(t *testing.T) {
 			r.ServeHTTP(w, request)
 			result := w.Result()
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
+			defer result.Body.Close()
 		})
 	}
 }
@@ -131,6 +133,7 @@ func TestGaugeHandler(t *testing.T) {
 			r.ServeHTTP(w, request)
 			result := w.Result()
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
+			defer result.Body.Close()
 		})
 	}
 }
