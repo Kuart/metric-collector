@@ -33,7 +33,7 @@ func send[T metric.GaugeValue | metric.CounterValue](client *http.Client, metric
 	response, err := client.Post(url, "text/plain", nil)
 
 	if err != nil {
-		log.Printf(fmt.Sprintf("%s metric not sended, err: %s", name, err))
+		log.Printf("%s metric not sended, err: %s", name, err)
 	}
 
 	defer response.Body.Close()
