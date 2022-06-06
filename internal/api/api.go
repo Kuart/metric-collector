@@ -29,7 +29,7 @@ func sendCounter(client *http.Client, counter metric.Counter) {
 }
 
 func send[T metric.GaugeValue | metric.CounterValue](client *http.Client, metricType string, name string, value T) {
-	url := createUrl(metricType, name, value)
+	url := createURL(metricType, name, value)
 	response, err := client.Post(url, "text/plain", nil)
 
 	if err != nil {
@@ -39,7 +39,7 @@ func send[T metric.GaugeValue | metric.CounterValue](client *http.Client, metric
 	defer response.Body.Close()
 }
 
-func createUrl[T metric.GaugeValue | metric.CounterValue](metricType string, name string, value T) string {
+func createURL[T metric.GaugeValue | metric.CounterValue](metricType string, name string, value T) string {
 	if metricType == metric.GaugeTypeName {
 		return fmt.Sprintf("http://%s:%s/update/%s/%s/%f", Host, Port, metricType, name, float64(value))
 	}
