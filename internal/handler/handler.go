@@ -95,5 +95,5 @@ func MetricsPageHandler(w http.ResponseWriter, r *http.Request) {
 		"counterMetrics": storage.GetCounterStorage(),
 	}
 
-	template.HtmlTemplate.Execute(w, renderData)
+	template.HTMLTemplate.Execute(w, renderData)
 }
