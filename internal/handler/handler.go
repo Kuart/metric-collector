@@ -19,8 +19,10 @@ const (
 
 func SetRoutes(r *chi.Mux) {
 	r.Get("/value/{type}/{name}", MetricValueHandler)
+	r.Post("/value", GetJSONMetricHandler)
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/{type}/{name}/{value}", UpdateHandler)
+		r.Post("/", JSONUpdateHandler)
 	})
 	r.Get("/", MetricsPageHandler)
 }
@@ -96,4 +98,12 @@ func MetricsPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	template.HTMLTemplate.Execute(w, renderData)
+}
+
+func JSONUpdateHandler(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func GetJSONMetricHandler(w http.ResponseWriter, r *http.Request) {
+
 }
