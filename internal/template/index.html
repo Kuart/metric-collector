@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Metric Collector</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100vw;
+                height: 100vh;
+                overflow: hidden;
+                display: flex;
+                justify-content: center;
+                font-family: 'Roboto', sans-serif;
+            }
+
+            .page-container {
+                width: 100%;
+                max-width: 900px;
+                display: flex;
+                justify-content: space-around;
+            }
+
+            .metric-container {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .table {
+                display: flex;
+                flex-direction: column;
+                height: calc(100vh - 100px);
+                overflow-y: auto;
+                position: relative;
+                border: 1px solid #efefef;
+                border-radius: 6px;
+            }
+
+            table {
+                max-width: 350px;
+                min-width: 350px;
+                border-collapse: collapse;
+                border: 1px solid #efefef;
+                padding: 5px;
+                border-radius: 6px;
+                table-layout: fixed;
+            }
+
+            tr:nth-child(even) {
+                background: rgb(245, 245, 245);
+            }
+
+            th {
+                text-align: start;
+                padding: 10px;
+                position: sticky;
+                top: 0;
+                background: #fefefe;
+            }
+
+            td:not(td:last-child),
+            th:not(th:last-child) {
+                border-right: 1px solid#efefef ;
+            }
+
+            td {
+                padding: 5px 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class='page-container'>
+            <div class='metric-container'>
+                <h1> Gauge Metrics </h1>
+                <div class='table'>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Значаение</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ range $key, $value := .gaugeMetrics }}
+                                <tr>
+                                    <td><p>{{$key}}</p></td>
+                                    <td><p>{{$value}}</p></td>
+                                </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class='metric-container'>
+                <h1> Counter Metrics </h1>
+                <div class='table'>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Значаение</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ range $key, $value := .counterMetrics }}
+                            <tr>
+                                <td><p>{{$key}}</p></td>
+                                <td><p>{{$value}}</p></td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
