@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/Kuart/metric-collector/internal/api"
+	"github.com/Kuart/metric-collector/cmd"
 	"github.com/Kuart/metric-collector/internal/metric"
+	"github.com/Kuart/metric-collector/internal/sender"
 	"github.com/Kuart/metric-collector/internal/storage"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,10 +17,10 @@ const (
 )
 
 func main() {
+	client := sender.NewMetricClient(env.Host, env.Port, pollInterval)
 	osSign := make(chan os.Signal, 1)
 	signal.Notify(osSign, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	client := http.Client{Timeout: pollInterval}
 	pollTicker := time.NewTicker(pollInterval)
 	reportTicker := time.NewTicker(reportInterval)
 
@@ -39,7 +39,7 @@ func main() {
 				gaugeMetrics[item.Name] += item.Value
 			}
 		case <-reportTicker.C:
-			api.SendMetric(&client, gaugeMetrics, counter)
+			client.SendMetrics(gaugeMetrics, counter)
 
 			counter.Clear()
 			gaugeMetrics = *storage.CreateGauge()

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/Kuart/metric-collector/internal/metric"
 	"github.com/Kuart/metric-collector/internal/storage"
@@ -11,10 +12,12 @@ import (
 )
 
 const (
-	notIntError     = "value is not int type"
-	notFloatError   = "value is not float type"
-	metricTypeError = "metric type not implemented"
-	metricNotFound  = "metric \"%s\" is not found"
+	notIntError         = "value is not int type"
+	notFloatError       = "value is not float type"
+	metricTypeError     = "metric type not implemented"
+	metricNotFoundError = "metric \"%s\" is not found"
+	JSONDecodeError     = "error in JSON decode"
+	JSONValidationError = "JSON validation fail: \"%s\""
 )
 
 func SetRoutes(r *chi.Mux) {
@@ -72,7 +75,7 @@ func MetricValueHandler(w http.ResponseWriter, r *http.Request) {
 		metric, ok := storage.GetGaugeMetric(name)
 
 		if !ok {
-			http.Error(w, fmt.Sprintf(metricNotFound, name), http.StatusNotFound)
+			http.Error(w, fmt.Sprintf(metricNotFoundError, name), http.StatusNotFound)
 		}
 
 		w.Write([]byte(fmt.Sprint(metric)))
@@ -81,12 +84,12 @@ func MetricValueHandler(w http.ResponseWriter, r *http.Request) {
 		metric, ok := storage.GetCounterMetric(name)
 
 		if !ok {
-			http.Error(w, fmt.Sprintf(metricNotFound, name), http.StatusNotFound)
+			http.Error(w, fmt.Sprintf(metricNotFoundError, name), http.StatusNotFound)
 		}
 		w.Write([]byte(fmt.Sprint(metric)))
 		w.WriteHeader(http.StatusOK)
 	} else {
-		http.Error(w, fmt.Sprintf(metricNotFound, name), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf(metricNotFoundError, name), http.StatusNotFound)
 	}
 
 }
@@ -101,7 +104,24 @@ func MetricsPageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func JSONUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	var req Metric
 
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, JSONDecodeError, http.StatusBadRequest)
+		return
+	}
+
+	if err := ValidateStruct(req); err != nil {
+		http.Error(w, fmt.Sprintf(JSONValidationError, err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	if req.MType == metric.GaugeTypeName {
+		storage.GaugeUpdate(req.ID, *req.Value)
+		return
+	}
+
+	storage.CounterUpdate(req.ID, *req.Delta)
 }
 
 func GetJSONMetricHandler(w http.ResponseWriter, r *http.Request) {

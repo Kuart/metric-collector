@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Kuart/metric-collector/internal/api"
+	env "github.com/Kuart/metric-collector/cmd"
 	"github.com/Kuart/metric-collector/internal/handler"
 	"github.com/Kuart/metric-collector/internal/template"
 	"github.com/go-chi/chi/v5"
@@ -11,6 +11,7 @@ import (
 
 func main() {
 	template.SetupMetricTemplate()
+	handler.InitMetricValidator()
 	RunServer()
 }
 
@@ -19,7 +20,7 @@ func RunServer() {
 	handler.SetRoutes(r)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf("%s:%s", api.Host, api.Port),
+		Addr:    fmt.Sprintf("%s:%s", env.Host, env.Port),
 		Handler: r,
 	}
 
