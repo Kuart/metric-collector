@@ -125,5 +125,48 @@ func JSONUpdateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetJSONMetricHandler(w http.ResponseWriter, r *http.Request) {
+	var req MetricReq
 
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, JSONDecodeError, http.StatusBadRequest)
+		return
+	}
+
+	if err := validate.Struct(req); err != nil {
+		http.Error(w, fmt.Sprintf(JSONValidationError, err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	body := Metric{
+		ID:    req.ID,
+		MType: req.MType,
+	}
+
+	if req.MType == metric.GaugeTypeName {
+		metric, ok := storage.GetGaugeMetric(req.ID)
+
+		if !ok {
+			http.Error(w, fmt.Sprintf(metricNotFoundError, req.ID), http.StatusNotFound)
+			return
+		}
+
+		value := float64(metric)
+		body.Value = &value
+	} else {
+		metric, ok := storage.GetCounterMetric(req.ID)
+
+		if !ok {
+			http.Error(w, fmt.Sprintf(metricNotFoundError, req.ID), http.StatusNotFound)
+			return
+		}
+
+		value := int64(metric)
+		body.Delta = &value
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	jsonValue, _ := json.Marshal(body)
+	w.Write(jsonValue)
 }

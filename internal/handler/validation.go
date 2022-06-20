@@ -12,6 +12,11 @@ type Metric struct {
 	Value *float64 `json:"value,omitempty"`
 }
 
+type MetricReq struct {
+	ID    string `json:"id" validate:"required"`
+	MType string `json:"type" validate:"required,oneof='gauge' 'counter'"`
+}
+
 var validate = validator.New()
 
 func InitMetricValidator() {
