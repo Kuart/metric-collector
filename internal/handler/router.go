@@ -7,7 +7,7 @@ import (
 
 func NewRouter(handler MetricHandler) *chi.Mux {
 	r := chi.NewRouter()
-	r.Use(middleware.Compress(5, "gzip"))
+	r.Use(middleware.Compress(5))
 
 	r.Route("/value", func(r chi.Router) {
 		r.Get("/{type}/{name}", handler.MetricValue)

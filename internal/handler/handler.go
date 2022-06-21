@@ -95,6 +95,7 @@ func (h MetricHandler) MetricValue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h MetricHandler) MetricsPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
 	renderData := map[string]interface{}{
 		"gaugeMetrics":   h.storage.GetGauge(),
 		"counterMetrics": h.storage.GetCounter(),
