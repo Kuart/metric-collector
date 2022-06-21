@@ -11,9 +11,8 @@ import (
 	"time"
 )
 
-func NewMetricClient(host string, port string, pollInterval time.Duration) *Client {
-	basePath := fmt.Sprintf("http://%s:%s", host, port)
-	updatePath := fmt.Sprintf("%s/update/", basePath)
+func NewMetricClient(address string, pollInterval time.Duration) *Client {
+	updatePath := fmt.Sprintf("http://%s/update/", address)
 	return &Client{
 		updatePath: updatePath,
 		client: &http.Client{

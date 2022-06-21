@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/Kuart/metric-collector/cmd"
 	agentConfig "github.com/Kuart/metric-collector/config/agent"
 	"github.com/Kuart/metric-collector/internal/metric"
 	"github.com/Kuart/metric-collector/internal/sender"
@@ -13,7 +12,7 @@ import (
 
 func main() {
 	config := agentConfig.New()
-	client := sender.NewMetricClient(cmd.Host, cmd.Port, *config.PollInterval)
+	client := sender.NewMetricClient(config.Address, *config.PollInterval)
 
 	osSign := make(chan os.Signal, 1)
 	signal.Notify(osSign, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

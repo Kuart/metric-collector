@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"github.com/Kuart/metric-collector/cmd"
 	serverConfig "github.com/Kuart/metric-collector/config/server"
 	"github.com/Kuart/metric-collector/internal/handler"
 	"github.com/Kuart/metric-collector/internal/storage/file"
@@ -25,7 +23,7 @@ func main() {
 	r := handler.NewRouter(metricHandler)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf("%s:%s", cmd.Host, cmd.Port),
+		Addr:    config.Address,
 		Handler: r,
 	}
 

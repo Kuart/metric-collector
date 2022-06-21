@@ -2,7 +2,6 @@ package handler
 
 import (
 	"github.com/Kuart/metric-collector/internal/storage/storage"
-	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -35,8 +34,7 @@ func TestUpdateHandler(t *testing.T) {
 
 			storage := storage.New()
 			metricHandler := NewHandler(storage)
-			r := chi.NewRouter()
-			SetRoutes(r, metricHandler)
+			NewRouter(metricHandler)
 
 			h := http.HandlerFunc(metricHandler.Update)
 			h.ServeHTTP(w, request)
@@ -88,8 +86,7 @@ func TestCounterHandler(t *testing.T) {
 
 			storage := storage.New()
 			metricHandler := NewHandler(storage)
-			r := chi.NewRouter()
-			SetRoutes(r, metricHandler)
+			r := NewRouter(metricHandler)
 
 			r.HandleFunc(pattern, metricHandler.Counter)
 			r.ServeHTTP(w, request)
@@ -141,8 +138,7 @@ func TestGaugeHandler(t *testing.T) {
 
 			storage := storage.New()
 			metricHandler := NewHandler(storage)
-			r := chi.NewRouter()
-			SetRoutes(r, metricHandler)
+			r := NewRouter(metricHandler)
 
 			r.HandleFunc(pattern, metricHandler.Gauge)
 			r.ServeHTTP(w, request)
