@@ -36,10 +36,7 @@ func (c *Client) sendGauge(gauge map[string]metric.GaugeValue) {
 			Value: &floatValue,
 		}
 
-		url := fmt.Sprintf("%s/%s/%s/%f", c.updatePath, body.MType, body.ID, floatValue)
-
-		c.doRequest(url)
-		c.doJsonRequest(body)
+		c.doRequest(body)
 	}
 }
 
@@ -52,12 +49,10 @@ func (c *Client) sendCounter(counter metric.Counter) {
 		Delta: &intValue,
 	}
 
-	url := fmt.Sprintf("%s/%s/%s/%d", c.updatePath, body.MType, body.ID, intValue)
-	c.doRequest(url)
-	c.doJsonRequest(body)
+	c.doRequest(body)
 }
 
-func (c *Client) doJsonRequest(body handler.Metric) {
+func (c *Client) doRequest(body handler.Metric) {
 	jsonValue, err := json.Marshal(body)
 
 	if err != nil {
@@ -70,16 +65,7 @@ func (c *Client) doJsonRequest(body handler.Metric) {
 
 	if err != nil {
 		log.Printf("%s metric not sended, err: %s", body.ID, err)
-	}
-
-	defer response.Body.Close()
-}
-
-func (c *Client) doRequest(url string) {
-	response, err := c.client.Post(url, "text/plain", nil)
-
-	if err != nil {
-		log.Printf("%s metric not sended, err: %s", url, err)
+		return
 	}
 
 	defer response.Body.Close()
