@@ -14,9 +14,9 @@ var (
 )
 
 type Config struct {
-	Address        string         `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
-	ReportInterval *time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
-	PollInterval   *time.Duration `env:"POLL_INTERVAL" envDefault:"2s"`
+	Address        string        `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
+	ReportInterval time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
+	PollInterval   time.Duration `env:"POLL_INTERVAL" envDefault:"2s"`
 }
 
 type flagConfig struct {
@@ -42,12 +42,12 @@ func New() Config {
 		cfg.Address = flagCfg.Address
 	}
 
-	if flagCfg.ReportInterval != reportInterval && cfg.ReportInterval == &reportInterval {
-		cfg.ReportInterval = &flagCfg.ReportInterval
+	if flagCfg.ReportInterval != reportInterval && cfg.ReportInterval == reportInterval {
+		cfg.ReportInterval = flagCfg.ReportInterval
 	}
 
-	if flagCfg.PollInterval != pollInterval && cfg.PollInterval == &pollInterval {
-		cfg.PollInterval = &flagCfg.PollInterval
+	if flagCfg.PollInterval != pollInterval && cfg.PollInterval == pollInterval {
+		cfg.PollInterval = flagCfg.PollInterval
 	}
 
 	return cfg

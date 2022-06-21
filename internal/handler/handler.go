@@ -166,8 +166,6 @@ func (h MetricHandler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(body)
 	w.WriteHeader(http.StatusOK)
-
-	jsonValue, _ := json.Marshal(body)
-	w.Write(jsonValue)
 }

@@ -12,13 +12,13 @@ import (
 
 func main() {
 	config := agentConfig.New()
-	client := sender.NewMetricClient(config.Address, *config.PollInterval)
+	client := sender.NewMetricClient(config.Address, config.PollInterval)
 
 	osSign := make(chan os.Signal, 1)
 	signal.Notify(osSign, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	pollTicker := time.NewTicker(*config.PollInterval)
-	reportTicker := time.NewTicker(*config.ReportInterval)
+	pollTicker := time.NewTicker(config.PollInterval)
+	reportTicker := time.NewTicker(config.ReportInterval)
 
 	var randomGauge metric.Gauge
 	counter := metric.GetCounter(0)
