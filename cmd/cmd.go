@@ -1,4 +1,4 @@
-package env
+package cmd
 
 const (
 	Host = "127.0.0.1"

@@ -2,31 +2,28 @@ package main
 
 import (
 	"github.com/Kuart/metric-collector/cmd"
+	agentConfig "github.com/Kuart/metric-collector/config/agent"
 	"github.com/Kuart/metric-collector/internal/metric"
 	"github.com/Kuart/metric-collector/internal/sender"
-	"github.com/Kuart/metric-collector/internal/storage"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 )
 
-const (
-	pollInterval   = 2 * time.Second
-	reportInterval = 10 * time.Second
-)
-
 func main() {
-	client := sender.NewMetricClient(env.Host, env.Port, pollInterval)
+	config := agentConfig.New()
+	client := sender.NewMetricClient(cmd.Host, cmd.Port, *config.PollInterval)
+
 	osSign := make(chan os.Signal, 1)
 	signal.Notify(osSign, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	pollTicker := time.NewTicker(pollInterval)
-	reportTicker := time.NewTicker(reportInterval)
+	pollTicker := time.NewTicker(*config.PollInterval)
+	reportTicker := time.NewTicker(*config.ReportInterval)
 
 	var randomGauge metric.Gauge
 	counter := metric.GetCounter(0)
-	gaugeMetrics := *storage.CreateGauge()
+	gaugeMetrics := make(map[string]metric.GaugeValue)
 
 	for {
 		select {
@@ -42,7 +39,7 @@ func main() {
 			client.SendMetrics(gaugeMetrics, counter)
 
 			counter.Clear()
-			gaugeMetrics = *storage.CreateGauge()
+			gaugeMetrics = make(map[string]metric.GaugeValue)
 		case <-osSign:
 			os.Exit(0)
 		}

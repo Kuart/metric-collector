@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/Kuart/metric-collector/internal/handler"
 	"github.com/Kuart/metric-collector/internal/metric"
-	"github.com/Kuart/metric-collector/internal/storage"
 	"log"
 	"net/http"
 	"time"
@@ -23,12 +22,12 @@ func NewMetricClient(host string, port string, pollInterval time.Duration) *Clie
 	}
 }
 
-func (c *Client) SendMetrics(gauge storage.GaugeStorage, counter metric.Counter) {
+func (c *Client) SendMetrics(gauge map[string]metric.GaugeValue, counter metric.Counter) {
 	c.sendGauge(gauge)
 	c.sendCounter(counter)
 }
 
-func (c *Client) sendGauge(gauge storage.GaugeStorage) {
+func (c *Client) sendGauge(gauge map[string]metric.GaugeValue) {
 	for key, value := range gauge {
 		floatValue := float64(value)
 

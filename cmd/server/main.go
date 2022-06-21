@@ -2,25 +2,30 @@ package main
 
 import (
 	"fmt"
-	env "github.com/Kuart/metric-collector/cmd"
+	"github.com/Kuart/metric-collector/cmd"
+	serverConfig "github.com/Kuart/metric-collector/config/server"
 	"github.com/Kuart/metric-collector/internal/handler"
+	"github.com/Kuart/metric-collector/internal/storage/file"
+	"github.com/Kuart/metric-collector/internal/storage/storage"
 	"github.com/Kuart/metric-collector/internal/template"
-	"github.com/go-chi/chi/v5"
 	"net/http"
 )
 
 func main() {
-	template.SetupMetricTemplate()
-	handler.InitMetricValidator()
-	RunServer()
-}
+	config := serverConfig.New()
+	storage := storage.New()
 
-func RunServer() {
-	r := chi.NewRouter()
-	handler.SetRoutes(r)
+	fileStorage := file.New(config.StoreFile, config.StoreInterval, &storage)
+	fileStorage.LoadToStorage(config.Restore)
+	go fileStorage.InitSaver()
+
+	template.SetupMetricTemplate()
+
+	metricHandler := handler.NewHandler(storage)
+	r := handler.NewRouter(metricHandler)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf("%s:%s", env.Host, env.Port),
+		Addr:    fmt.Sprintf("%s:%s", cmd.Host, cmd.Port),
 		Handler: r,
 	}
 

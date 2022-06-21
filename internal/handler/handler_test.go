@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/Kuart/metric-collector/internal/storage/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -31,7 +32,13 @@ func TestUpdateHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(UpdateHandler)
+
+			storage := storage.New()
+			metricHandler := NewHandler(storage)
+			r := chi.NewRouter()
+			SetRoutes(r, metricHandler)
+
+			h := http.HandlerFunc(metricHandler.Update)
 			h.ServeHTTP(w, request)
 			result := w.Result()
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
@@ -78,9 +85,13 @@ func TestCounterHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
+
+			storage := storage.New()
+			metricHandler := NewHandler(storage)
 			r := chi.NewRouter()
-			SetRoutes(r)
-			r.HandleFunc(pattern, CounterHandler)
+			SetRoutes(r, metricHandler)
+
+			r.HandleFunc(pattern, metricHandler.Counter)
 			r.ServeHTTP(w, request)
 			result := w.Result()
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
@@ -127,9 +138,13 @@ func TestGaugeHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
+
+			storage := storage.New()
+			metricHandler := NewHandler(storage)
 			r := chi.NewRouter()
-			SetRoutes(r)
-			r.HandleFunc(pattern, GaugeHandler)
+			SetRoutes(r, metricHandler)
+
+			r.HandleFunc(pattern, metricHandler.Gauge)
 			r.ServeHTTP(w, request)
 			result := w.Result()
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
