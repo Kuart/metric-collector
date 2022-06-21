@@ -11,10 +11,10 @@ import (
 )
 
 var (
-	noFileErr     = errors.New("there is no file in the selected path")
-	openFileErr   = errors.New("error opening file")
-	noFileInfoErr = errors.New("can't get file info")
-	emptyFileErr  = errors.New("the file in the selected path is empty")
+	errNoFile     = errors.New("there is no file in the selected path")
+	errOpenFile   = errors.New("error opening file")
+	errNoFileInfo = errors.New("can't get file info")
+	errEmptyFile  = errors.New("the file in the selected path is empty")
 )
 
 type Storage struct {
@@ -32,32 +32,24 @@ func New(path string, interval time.Duration, storage *storage.Storage) Storage 
 }
 
 func (fs *Storage) LoadToStorage(isRestore bool) (err error) {
-	defer func() {
-		err = util.ErrorWrap("can't load to storage", err)
-		if err != nil {
-			log.Print(err)
-		}
-	}()
-
 	if !isRestore {
 		return nil
 	}
 
 	file, err := os.OpenFile(fs.path, os.O_RDONLY, 0)
-	defer file.Close()
 
 	if err != nil {
-		return openFileErr
+		return errOpenFile
 	}
 
 	fi, err := file.Stat()
 	if err != nil {
-		return noFileInfoErr
+		return errNoFile
 	}
 
 	size := fi.Size()
 	if size == 0 {
-		return emptyFileErr
+		return errEmptyFile
 	}
 
 	var fileStorage storage.FileStorage
@@ -68,6 +60,14 @@ func (fs *Storage) LoadToStorage(isRestore bool) (err error) {
 
 	fs.storage.UpdateFromFile(fileStorage)
 
+	defer file.Close()
+	defer func() {
+		err = util.ErrorWrap("can't load to storage", err)
+		if err != nil {
+			log.Print(err)
+		}
+	}()
+	
 	return nil
 }
 
@@ -81,20 +81,12 @@ func (fs Storage) InitSaver() {
 }
 
 func (fs *Storage) SaveToFile() (err error) {
-	defer func() {
-		err = util.ErrorWrap("can't save from storage", err)
-		if err != nil {
-			log.Print(err)
-		}
-	}()
-
 	flags := os.O_WRONLY | os.O_CREATE
 
 	file, err := os.OpenFile(fs.path, flags, 0644)
-	defer file.Close()
 
 	if err != nil {
-		return openFileErr
+		return errOpenFile
 	}
 
 	temp := storage.FileStorage{
@@ -109,5 +101,14 @@ func (fs *Storage) SaveToFile() (err error) {
 	}
 
 	log.Printf("metrics saved to file %s", fs.path)
+
+	defer file.Close()
+	defer func() {
+		err = util.ErrorWrap("can't save from storage", err)
+		if err != nil {
+			log.Print(err)
+		}
+	}()
+
 	return nil
 }

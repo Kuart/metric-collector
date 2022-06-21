@@ -53,7 +53,13 @@ func (c *Client) sendCounter(counter metric.Counter) {
 }
 
 func (c *Client) doRequest(body handler.Metric) {
-	jsonValue, _ := json.Marshal(body)
+	jsonValue, err := json.Marshal(body)
+
+	if err != nil {
+		log.Printf("%s metric not sended, json marshal err: %s", body.ID, err)
+		return
+	}
+
 	buff := bytes.NewBuffer(jsonValue)
 	response, err := c.client.Post(c.updatePath, "application/json;charset=utf-8", buff)
 
