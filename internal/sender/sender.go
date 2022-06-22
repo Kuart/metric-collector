@@ -12,7 +12,7 @@ import (
 )
 
 func NewMetricClient(address string, pollInterval time.Duration) *Client {
-	updatePath := fmt.Sprintf("http://%s/update/", address)
+	updatePath := fmt.Sprintf("http://%s/update", address)
 	return &Client{
 		updatePath: updatePath,
 		client: &http.Client{
@@ -67,6 +67,8 @@ func (c *Client) doRequest(body handler.Metric) {
 		log.Printf("%s metric not sended, err: %s", body.ID, err)
 		return
 	}
+
+	log.Printf("%s metric sended", body.ID)
 
 	defer response.Body.Close()
 }
