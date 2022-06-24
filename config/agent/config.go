@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/caarlos0/env/v6"
+	"log"
 	"time"
 )
 
@@ -34,9 +35,13 @@ func New() Config {
 	flag.DurationVar(&flagCfg.PollInterval, "p", pollInterval, "poll interval")
 	flag.Parse()
 
+	log.Printf("Agent init flags: %+v\n", flagCfg)
+
 	if err := env.Parse(&cfg); err != nil {
 		fmt.Printf("%+v\n", err)
 	}
+
+	log.Printf("Agent init ENV: %+v\n", cfg)
 
 	if flagCfg.Address != address && cfg.Address == address {
 		cfg.Address = flagCfg.Address
@@ -49,6 +54,8 @@ func New() Config {
 	if flagCfg.PollInterval != pollInterval && cfg.PollInterval == pollInterval {
 		cfg.PollInterval = flagCfg.PollInterval
 	}
+
+	log.Printf("Agent config: %+v\n", cfg)
 
 	return cfg
 }

@@ -67,11 +67,15 @@ func (fs *Storage) LoadToStorage(isRestore bool) (err error) {
 			log.Print(err)
 		}
 	}()
-	
+
 	return nil
 }
 
 func (fs Storage) InitSaver() {
+	if fs.path == "" {
+		return
+	}
+
 	ticker := time.NewTicker(fs.interval)
 
 	for {

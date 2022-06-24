@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/caarlos0/env/v6"
+	"log"
 	"time"
 )
 
@@ -38,9 +39,13 @@ func New() Config {
 	flag.StringVar(&flagCfg.StoreFile, "f", storeFile, "store file path")
 	flag.Parse()
 
+	log.Printf("Server init flags: %+v\n", flagCfg)
+
 	if err := env.Parse(&cfg); err != nil {
 		fmt.Printf("%+v\n", err)
 	}
+
+	log.Printf("Server init ENV: %+v\n", cfg)
 
 	if flagCfg.Address != address && cfg.Address == address {
 		cfg.Address = flagCfg.Address
@@ -57,6 +62,8 @@ func New() Config {
 	if flagCfg.StoreFile != storeFile && cfg.StoreFile == storeFile {
 		cfg.StoreFile = flagCfg.StoreFile
 	}
+
+	log.Printf("Server config: %+v\n", cfg)
 
 	return cfg
 }
