@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/caarlos0/env/v6"
 	"log"
+	"os"
 	"time"
 )
 
@@ -51,7 +52,7 @@ func New() Config {
 		cfg.Address = flagCfg.Address
 	}
 
-	if flagCfg.Restore != restore && cfg.Restore == restore {
+	if flagCfg.Restore != restore && os.Getenv("RESTORE") == "" {
 		cfg.Restore = flagCfg.Restore
 	}
 
