@@ -40,6 +40,7 @@ func (s Storage) GetGaugeMetric(name string) (metric.Metric, bool) {
 
 	m := metric.Metric{
 		ID:    name,
+		MType: metric.GaugeTypeName,
 		Value: &val,
 	}
 
@@ -51,6 +52,7 @@ func (s Storage) GetCounterMetric(name string) (metric.Metric, bool) {
 
 	m := metric.Metric{
 		ID:    name,
+		MType: metric.CounterTypeName,
 		Delta: &val,
 	}
 
