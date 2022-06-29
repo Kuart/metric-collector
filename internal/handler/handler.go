@@ -87,16 +87,6 @@ func (h MetricHandler) MetricValue(w http.ResponseWriter, r *http.Request) {
 	metricType, name := chi.URLParam(r, "type"), chi.URLParam(r, "name")
 
 	if metricType == metric.GaugeTypeName {
-		metric, ok := h.controller.GetMetric(metric.Metric{ID: name, MType: metric.CounterTypeName})
-
-		if !ok {
-			http.Error(w, fmt.Sprintf(metricNotFoundError, name), http.StatusNotFound)
-			return
-		}
-
-		w.Write([]byte(fmt.Sprint(metric)))
-		w.WriteHeader(http.StatusOK)
-	} else if metricType == metric.CounterTypeName {
 		metric, ok := h.controller.GetMetric(metric.Metric{ID: name, MType: metric.GaugeTypeName})
 
 		if !ok {
@@ -104,7 +94,17 @@ func (h MetricHandler) MetricValue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		w.Write([]byte(fmt.Sprint(metric)))
+		w.Write([]byte(fmt.Sprint(*metric.Value)))
+		w.WriteHeader(http.StatusOK)
+	} else if metricType == metric.CounterTypeName {
+		metric, ok := h.controller.GetMetric(metric.Metric{ID: name, MType: metric.CounterTypeName})
+
+		if !ok {
+			http.Error(w, fmt.Sprintf(metricNotFoundError, name), http.StatusNotFound)
+			return
+		}
+
+		w.Write([]byte(fmt.Sprint(*metric.Delta)))
 		w.WriteHeader(http.StatusOK)
 	} else {
 		http.Error(w, fmt.Sprintf(metricNotFoundError, name), http.StatusNotFound)

@@ -33,7 +33,7 @@ func (fs *Storage) GetFileData() (ifs inmemory.FileStorage, err error) {
 	file, err := os.OpenFile(fs.path, os.O_RDONLY, 0)
 
 	if err != nil {
-		return inmemory.FileStorage{}, errors.New(fmt.Sprintf("%s, Action:%s, File:", errOpenFile, "GetFileData", fs.path))
+		return inmemory.FileStorage{}, fmt.Errorf("%s, Action:%s, File:%s", errOpenFile, "GetFileData", fs.path)
 	}
 
 	fi, err := file.Stat()
@@ -66,7 +66,7 @@ func (fs *Storage) Save(metrics map[string]interface{}) (err error) {
 		fs.openedFile, err = os.OpenFile(fs.path, flags, 0644)
 
 		if err != nil {
-			return errors.New(fmt.Sprintf("%s, Action:%s, File:", errOpenFile, "Save", fs.path))
+			return fmt.Errorf("%s, Action:%s, File:%s", errOpenFile, "GetFileData", fs.path)
 		}
 	}
 

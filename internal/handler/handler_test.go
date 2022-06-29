@@ -1,6 +1,9 @@
 package handler
 
 import (
+	config "github.com/Kuart/metric-collector/config/server"
+	"github.com/Kuart/metric-collector/internal/storage"
+	"github.com/Kuart/metric-collector/internal/storage/file"
 	"github.com/Kuart/metric-collector/internal/storage/inmemory"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -32,8 +35,12 @@ func TestUpdateHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
 
-			storage := inmemory.New()
-			metricHandler := NewHandler(storage)
+			servConf := config.New()
+			inmemory := inmemory.New()
+			fileStorage := file.New(servConf)
+			controller := storage.New(servConf, inmemory, fileStorage)
+
+			metricHandler := NewHandler(controller)
 			NewRouter(metricHandler)
 
 			h := http.HandlerFunc(metricHandler.Update)
@@ -46,7 +53,7 @@ func TestUpdateHandler(t *testing.T) {
 }
 
 func TestCounterHandler(t *testing.T) {
-	pattern := "/{type}/{name}/{value}"
+	pattern := "/counter/{name}/{value}"
 	type want struct {
 		statusCode int
 	}
@@ -84,8 +91,16 @@ func TestCounterHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
 
-			storage := inmemory.New()
-			metricHandler := NewHandler(storage)
+			config := config.Config{
+				StoreFile: "",
+				Address:   "127.0.0.1:8080",
+			}
+
+			inmemoryStorage := inmemory.New()
+			fileStorage := file.New(config)
+			srgController := storage.New(config, inmemoryStorage, fileStorage)
+
+			metricHandler := NewHandler(srgController)
 			r := NewRouter(metricHandler)
 
 			r.HandleFunc(pattern, metricHandler.Counter)
@@ -98,7 +113,7 @@ func TestCounterHandler(t *testing.T) {
 }
 
 func TestGaugeHandler(t *testing.T) {
-	pattern := "/{type}/{name}/{value}"
+	pattern := "/gauge/{name}/{value}"
 	type want struct {
 		statusCode int
 	}
@@ -136,8 +151,16 @@ func TestGaugeHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
 
-			storage := inmemory.New()
-			metricHandler := NewHandler(storage)
+			config := config.Config{
+				StoreFile: "",
+				Address:   "127.0.0.1:8080",
+			}
+
+			inmemoryStorage := inmemory.New()
+			fileStorage := file.New(config)
+			srgController := storage.New(config, inmemoryStorage, fileStorage)
+
+			metricHandler := NewHandler(srgController)
 			r := NewRouter(metricHandler)
 
 			r.HandleFunc(pattern, metricHandler.Gauge)
