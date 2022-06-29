@@ -3,110 +3,81 @@ package file
 import (
 	"encoding/json"
 	"errors"
-	"github.com/Kuart/metric-collector/internal/storage/storage"
+	"fmt"
+	config "github.com/Kuart/metric-collector/config/server"
+	"github.com/Kuart/metric-collector/internal/storage/inmemory"
 	"github.com/Kuart/metric-collector/internal/util"
 	"log"
 	"os"
-	"time"
 )
 
 var (
 	errNoFile     = errors.New("there is no file in the selected path")
-	errOpenFile   = errors.New("error opening file")
+	errOpenFile   = "error opening file"
 	errNoFileInfo = errors.New("can't get file info")
 	errEmptyFile  = errors.New("the file in the selected path is empty")
 )
 
 type Storage struct {
-	path     string
-	interval time.Duration
-	storage  *storage.Storage
+	path       string
+	openedFile *os.File
 }
 
-func New(path string, interval time.Duration, storage *storage.Storage) Storage {
+func New(cfg config.Config) Storage {
 	return Storage{
-		path:     path,
-		interval: interval,
-		storage:  storage,
+		path: cfg.StoreFile,
 	}
 }
 
-func (fs *Storage) LoadToStorage(isRestore bool) (err error) {
-	if !isRestore {
-		return nil
-	}
-
+func (fs *Storage) GetFileData() (ifs inmemory.FileStorage, err error) {
 	file, err := os.OpenFile(fs.path, os.O_RDONLY, 0)
 
 	if err != nil {
-		return errOpenFile
+		return inmemory.FileStorage{}, errors.New(fmt.Sprintf("%s, Action:%s, File:", errOpenFile, "GetFileData", fs.path))
 	}
 
 	fi, err := file.Stat()
 	if err != nil {
-		return errNoFile
+		return inmemory.FileStorage{}, errNoFile
 	}
 
 	size := fi.Size()
 	if size == 0 {
-		return errEmptyFile
+		return inmemory.FileStorage{}, errEmptyFile
 	}
 
-	var fileStorage storage.FileStorage
+	var fileStorage inmemory.FileStorage
 
 	if err := json.NewDecoder(file).Decode(&fileStorage); err != nil {
-		return err
+		return inmemory.FileStorage{}, err
 	}
-
-	fs.storage.UpdateFromFile(fileStorage)
 
 	defer file.Close()
 	defer func() {
 		err = util.ErrorWrap("can't load to storage", err)
-		if err != nil {
-			log.Print(err)
-		}
 	}()
 
-	return nil
+	return fileStorage, nil
 }
 
-func (fs Storage) InitSaver() {
-	if fs.path == "" {
-		return
+func (fs *Storage) Save(metrics map[string]interface{}) (err error) {
+	if fs.openedFile == nil {
+		flags := os.O_WRONLY | os.O_CREATE
+		fs.openedFile, err = os.OpenFile(fs.path, flags, 0644)
+
+		if err != nil {
+			return errors.New(fmt.Sprintf("%s, Action:%s, File:", errOpenFile, "Save", fs.path))
+		}
 	}
 
-	ticker := time.NewTicker(fs.interval)
+	encoder := json.NewEncoder(fs.openedFile)
 
-	for {
-		<-ticker.C
-		fs.SaveToFile()
-	}
-}
-
-func (fs *Storage) SaveToFile() (err error) {
-	flags := os.O_WRONLY | os.O_CREATE
-
-	file, err := os.OpenFile(fs.path, flags, 0644)
-
-	if err != nil {
-		return errOpenFile
-	}
-
-	temp := storage.FileStorage{
-		Gauge:   fs.storage.GetGauge(),
-		Counter: fs.storage.GetCounter(),
-	}
-
-	encoder := json.NewEncoder(file)
-
-	if err := encoder.Encode(temp); err != nil {
+	if err := encoder.Encode(metrics); err != nil {
 		return err
 	}
 
 	log.Printf("metrics saved to file %s", fs.path)
 
-	defer file.Close()
 	defer func() {
 		err = util.ErrorWrap("can't save from storage", err)
 		if err != nil {
@@ -115,4 +86,10 @@ func (fs *Storage) SaveToFile() (err error) {
 	}()
 
 	return nil
+}
+
+func (fs *Storage) CloseFile() {
+	if fs.openedFile != nil {
+		fs.openedFile.Close()
+	}
 }

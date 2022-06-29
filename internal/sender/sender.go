@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/Kuart/metric-collector/internal/handler"
 	"github.com/Kuart/metric-collector/internal/metric"
 	"log"
 	"net/http"
@@ -21,19 +20,17 @@ func NewMetricClient(address string, pollInterval time.Duration) *Client {
 	}
 }
 
-func (c *Client) SendMetrics(gauge map[string]metric.GaugeValue, counter metric.Counter) {
+func (c *Client) SendMetrics(gauge metric.GaugeState, counter metric.Counter) {
 	c.sendGauge(gauge)
 	c.sendCounter(counter)
 }
 
-func (c *Client) sendGauge(gauge map[string]metric.GaugeValue) {
+func (c *Client) sendGauge(gauge metric.GaugeState) {
 	for key, value := range gauge {
-		floatValue := float64(value)
-
-		body := handler.Metric{
+		body := metric.Metric{
 			ID:    key,
 			MType: metric.GaugeTypeName,
-			Value: &floatValue,
+			Value: &value,
 		}
 
 		c.doRequest(body)
@@ -41,18 +38,16 @@ func (c *Client) sendGauge(gauge map[string]metric.GaugeValue) {
 }
 
 func (c *Client) sendCounter(counter metric.Counter) {
-	intValue := int64(counter.Value)
-
-	body := handler.Metric{
+	body := metric.Metric{
 		ID:    counter.Name,
 		MType: metric.CounterTypeName,
-		Delta: &intValue,
+		Delta: &counter.Value,
 	}
 
 	c.doRequest(body)
 }
 
-func (c *Client) doRequest(body handler.Metric) {
+func (c *Client) doRequest(body metric.Metric) {
 	jsonValue, err := json.Marshal(body)
 
 	if err != nil {

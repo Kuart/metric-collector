@@ -4,7 +4,6 @@ import (
 	agentConfig "github.com/Kuart/metric-collector/config/agent"
 	"github.com/Kuart/metric-collector/internal/metric"
 	"github.com/Kuart/metric-collector/internal/sender"
-	"github.com/Kuart/metric-collector/internal/storage/storage"
 	"os"
 	"os/signal"
 	"syscall"
@@ -23,7 +22,7 @@ func main() {
 
 	var randomGauge metric.Gauge
 	counter := metric.GetCounter(0)
-	gaugeMetrics := storage.GaugeState{}
+	gaugeMetrics := metric.GaugeState{}
 
 	for {
 		select {
@@ -39,7 +38,7 @@ func main() {
 			client.SendMetrics(gaugeMetrics, counter)
 
 			counter.Clear()
-			gaugeMetrics = storage.GaugeState{}
+			gaugeMetrics = metric.GaugeState{}
 		case <-osSign:
 			os.Exit(0)
 		}

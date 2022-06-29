@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/Kuart/metric-collector/internal/storage/storage"
+	"github.com/Kuart/metric-collector/internal/storage/inmemory"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -32,7 +32,7 @@ func TestUpdateHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
 
-			storage := storage.New()
+			storage := inmemory.New()
 			metricHandler := NewHandler(storage)
 			NewRouter(metricHandler)
 
@@ -84,7 +84,7 @@ func TestCounterHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
 
-			storage := storage.New()
+			storage := inmemory.New()
 			metricHandler := NewHandler(storage)
 			r := NewRouter(metricHandler)
 
@@ -136,7 +136,7 @@ func TestGaugeHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
 
-			storage := storage.New()
+			storage := inmemory.New()
 			metricHandler := NewHandler(storage)
 			r := NewRouter(metricHandler)
 

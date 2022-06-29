@@ -3,23 +3,21 @@ package main
 import (
 	serverConfig "github.com/Kuart/metric-collector/config/server"
 	"github.com/Kuart/metric-collector/internal/handler"
+	"github.com/Kuart/metric-collector/internal/storage"
 	"github.com/Kuart/metric-collector/internal/storage/file"
-	"github.com/Kuart/metric-collector/internal/storage/storage"
+	"github.com/Kuart/metric-collector/internal/storage/inmemory"
 	"github.com/Kuart/metric-collector/internal/template"
 	"net/http"
 )
 
 func main() {
 	config := serverConfig.New()
-	storage := storage.New()
-
-	fileStorage := file.New(config.StoreFile, config.StoreInterval, &storage)
-	fileStorage.LoadToStorage(config.Restore)
-	go fileStorage.InitSaver()
-
+	inmemoryStorage := inmemory.New()
+	fileStorage := file.New(config)
+	srgController := storage.New(config, inmemoryStorage, fileStorage)
 	template.SetupMetricTemplate()
 
-	metricHandler := handler.NewHandler(storage)
+	metricHandler := handler.NewHandler(srgController)
 	r := handler.NewRouter(metricHandler)
 
 	server := &http.Server{
@@ -28,4 +26,6 @@ func main() {
 	}
 
 	server.ListenAndServe()
+
+	defer fileStorage.CloseFile()
 }
