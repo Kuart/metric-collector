@@ -84,7 +84,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {{ range $key, $value := .gaugeMetrics }}
+                            {{ range $key, $value := .Gauge }}
                                 <tr>
                                     <td><p>{{$key}}</p></td>
                                     <td><p>{{$value}}</p></td>
@@ -106,7 +106,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {{ range $key, $value := .counterMetrics }}
+                            {{ range $key, $value := .Counter }}
                             <tr>
                                 <td><p>{{$key}}</p></td>
                                 <td><p>{{$value}}</p></td>

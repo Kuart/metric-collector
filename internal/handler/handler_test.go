@@ -1,7 +1,10 @@
 package handler
 
 import (
-	"github.com/go-chi/chi/v5"
+	config "github.com/Kuart/metric-collector/config/server"
+	"github.com/Kuart/metric-collector/internal/storage"
+	"github.com/Kuart/metric-collector/internal/storage/file"
+	"github.com/Kuart/metric-collector/internal/storage/inmemory"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -31,7 +34,16 @@ func TestUpdateHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(UpdateHandler)
+
+			servConf := config.New()
+			inmemory := inmemory.New()
+			fileStorage := file.New(servConf)
+			controller := storage.New(servConf, inmemory, fileStorage)
+
+			metricHandler := NewHandler(controller)
+			NewRouter(metricHandler)
+
+			h := http.HandlerFunc(metricHandler.Update)
 			h.ServeHTTP(w, request)
 			result := w.Result()
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
@@ -41,7 +53,7 @@ func TestUpdateHandler(t *testing.T) {
 }
 
 func TestCounterHandler(t *testing.T) {
-	pattern := "/{type}/{name}/{value}"
+	pattern := "/counter/{name}/{value}"
 	type want struct {
 		statusCode int
 	}
@@ -78,9 +90,20 @@ func TestCounterHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
-			r := chi.NewRouter()
-			SetRoutes(r)
-			r.HandleFunc(pattern, CounterHandler)
+
+			config := config.Config{
+				StoreFile: "",
+				Address:   "127.0.0.1:8080",
+			}
+
+			inmemoryStorage := inmemory.New()
+			fileStorage := file.New(config)
+			srgController := storage.New(config, inmemoryStorage, fileStorage)
+
+			metricHandler := NewHandler(srgController)
+			r := NewRouter(metricHandler)
+
+			r.HandleFunc(pattern, metricHandler.Counter)
 			r.ServeHTTP(w, request)
 			result := w.Result()
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
@@ -90,7 +113,7 @@ func TestCounterHandler(t *testing.T) {
 }
 
 func TestGaugeHandler(t *testing.T) {
-	pattern := "/{type}/{name}/{value}"
+	pattern := "/gauge/{name}/{value}"
 	type want struct {
 		statusCode int
 	}
@@ -127,9 +150,20 @@ func TestGaugeHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
-			r := chi.NewRouter()
-			SetRoutes(r)
-			r.HandleFunc(pattern, GaugeHandler)
+
+			config := config.Config{
+				StoreFile: "",
+				Address:   "127.0.0.1:8080",
+			}
+
+			inmemoryStorage := inmemory.New()
+			fileStorage := file.New(config)
+			srgController := storage.New(config, inmemoryStorage, fileStorage)
+
+			metricHandler := NewHandler(srgController)
+			r := NewRouter(metricHandler)
+
+			r.HandleFunc(pattern, metricHandler.Gauge)
 			r.ServeHTTP(w, request)
 			result := w.Result()
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)

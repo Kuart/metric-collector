@@ -1,56 +1,96 @@
 package storage
 
 import (
+	config "github.com/Kuart/metric-collector/config/server"
 	"github.com/Kuart/metric-collector/internal/metric"
+	"github.com/Kuart/metric-collector/internal/storage/file"
+	"github.com/Kuart/metric-collector/internal/storage/inmemory"
+	"html/template"
+	"log"
+	"time"
 )
 
-type GaugeStorage map[string]metric.GaugeValue
+type Controller struct {
+	inmemory inmemory.Storage
+	file     file.Storage
+	sCfg     config.Config
+	isSync   bool
+}
 
-type CounterStorage map[string]metric.CounterValue
+var HTMLTemplate *template.Template
 
-var gauge = &GaugeStorage{}
-var counter = &CounterStorage{}
-
-func GetGaugeStorage() GaugeStorage {
-	gaugeStorage := make(map[string]metric.GaugeValue)
-
-	for key, val := range *gauge {
-		gaugeStorage[key] = val
+func New(sCfg config.Config, inmemory inmemory.Storage, file file.Storage) Controller {
+	controller := Controller{
+		inmemory: inmemory,
+		file:     file,
+		sCfg:     sCfg,
 	}
 
-	return gaugeStorage
-}
-
-func GetCounterStorage() CounterStorage {
-	counterStorage := make(map[string]metric.CounterValue)
-
-	for key, val := range *counter {
-		counterStorage[key] = val
+	if sCfg.Restore {
+		controller.LoadToStorage()
 	}
 
-	return counterStorage
+	if sCfg.StoreInterval > 0 && sCfg.Address != "" {
+		go controller.initFileSave(sCfg.StoreInterval)
+	}
+
+	if sCfg.StoreInterval == 0 {
+		controller.isSync = true
+	}
+
+	return controller
 }
 
-func GaugeUpdate(name string, value float64) {
-	(*gauge)[name] = metric.GaugeValue(value)
+func (c Controller) initFileSave(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+
+	for {
+		<-ticker.C
+		c.SaveToFile()
+	}
 }
 
-func CounterUpdate(name string, value int64) {
-	(*counter)[name] += metric.CounterValue(value)
+func (c Controller) LoadToStorage() {
+	data, err := c.file.GetFileData()
+
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	c.inmemory.UpdateFromFile(data)
 }
 
-func GetGaugeMetric(name string) (metric.GaugeValue, bool) {
-	metric, ok := (*gauge)[name]
+func (c Controller) UpdateStorage(m metric.Metric) {
+	if m.MType == metric.GaugeTypeName {
+		c.inmemory.GaugeUpdate(m.ID, *m.Value)
+	} else if m.MType == metric.CounterTypeName {
+		c.inmemory.CounterUpdate(m.ID, *m.Delta)
+	}
 
-	return metric, ok
+	if c.isSync {
+		c.SaveToFile()
+	}
 }
 
-func GetCounterMetric(name string) (metric.CounterValue, bool) {
-	metric, ok := (*counter)[name]
+func (c Controller) GetMetric(m metric.Metric) (metric.Metric, bool) {
+	if m.MType == metric.GaugeTypeName {
+		return c.inmemory.GetGaugeMetric(m.ID)
+	}
 
-	return metric, ok
+	return c.inmemory.GetCounterMetric(m.ID)
 }
 
-func CreateGauge() *GaugeStorage {
-	return &GaugeStorage{}
+func (c Controller) GetAllMetrics() map[string]interface{} {
+	metrics := map[string]interface{}{
+		"Gauge":   c.inmemory.GetGauge(),
+		"Counter": c.inmemory.GetCounter(),
+	}
+
+	return metrics
+}
+
+func (c Controller) SaveToFile() {
+	metrics := c.GetAllMetrics()
+	c.file.Save(metrics)
 }

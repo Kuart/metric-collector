@@ -1,27 +1,31 @@
 package main
 
 import (
-	"fmt"
-	"github.com/Kuart/metric-collector/internal/api"
+	serverConfig "github.com/Kuart/metric-collector/config/server"
 	"github.com/Kuart/metric-collector/internal/handler"
+	"github.com/Kuart/metric-collector/internal/storage"
+	"github.com/Kuart/metric-collector/internal/storage/file"
+	"github.com/Kuart/metric-collector/internal/storage/inmemory"
 	"github.com/Kuart/metric-collector/internal/template"
-	"github.com/go-chi/chi/v5"
 	"net/http"
 )
 
 func main() {
+	config := serverConfig.New()
+	inmemoryStorage := inmemory.New()
+	fileStorage := file.New(config)
+	srgController := storage.New(config, inmemoryStorage, fileStorage)
 	template.SetupMetricTemplate()
-	RunServer()
-}
 
-func RunServer() {
-	r := chi.NewRouter()
-	handler.SetRoutes(r)
+	metricHandler := handler.NewHandler(srgController)
+	r := handler.NewRouter(metricHandler)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf("%s:%s", api.Host, api.Port),
+		Addr:    config.Address,
 		Handler: r,
 	}
 
 	server.ListenAndServe()
+
+	defer fileStorage.CloseFile()
 }

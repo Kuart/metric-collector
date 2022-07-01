@@ -1,32 +1,28 @@
 package main
 
 import (
-	"github.com/Kuart/metric-collector/internal/api"
+	agentConfig "github.com/Kuart/metric-collector/config/agent"
 	"github.com/Kuart/metric-collector/internal/metric"
-	"github.com/Kuart/metric-collector/internal/storage"
-	"net/http"
+	"github.com/Kuart/metric-collector/internal/sender"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 )
 
-const (
-	pollInterval   = 2 * time.Second
-	reportInterval = 10 * time.Second
-)
-
 func main() {
+	config := agentConfig.New()
+	client := sender.NewMetricClient(config.Address, config.PollInterval)
+
 	osSign := make(chan os.Signal, 1)
 	signal.Notify(osSign, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	client := http.Client{Timeout: pollInterval}
-	pollTicker := time.NewTicker(pollInterval)
-	reportTicker := time.NewTicker(reportInterval)
+	pollTicker := time.NewTicker(config.PollInterval)
+	reportTicker := time.NewTicker(config.ReportInterval)
 
 	var randomGauge metric.Gauge
 	counter := metric.GetCounter(0)
-	gaugeMetrics := *storage.CreateGauge()
+	gaugeMetrics := metric.GaugeState{}
 
 	for {
 		select {
@@ -39,10 +35,10 @@ func main() {
 				gaugeMetrics[item.Name] += item.Value
 			}
 		case <-reportTicker.C:
-			api.SendMetric(&client, gaugeMetrics, counter)
+			client.SendMetrics(gaugeMetrics, counter)
 
 			counter.Clear()
-			gaugeMetrics = *storage.CreateGauge()
+			gaugeMetrics = metric.GaugeState{}
 		case <-osSign:
 			os.Exit(0)
 		}

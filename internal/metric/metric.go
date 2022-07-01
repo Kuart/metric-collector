@@ -10,18 +10,24 @@ const (
 	CounterTypeName = "counter"
 )
 
-type CounterValue int64
-
-type GaugeValue float64
-
 type Counter struct {
 	Name  string
-	Value CounterValue
+	Value int64
 }
 
 type Gauge struct {
 	Name  string
-	Value GaugeValue
+	Value float64
+}
+
+type GaugeState = map[string]float64
+type CounterState = map[string]int64
+
+type Metric struct {
+	ID    string   `json:"id" validate:"required"`
+	MType string   `json:"type" validate:"required,oneof='gauge' 'counter'"`
+	Delta *int64   `json:"delta,omitempty"`
+	Value *float64 `json:"value,omitempty"`
 }
 
 func GetGauge() []Gauge {
@@ -29,43 +35,43 @@ func GetGauge() []Gauge {
 	runtime.ReadMemStats(&memStats)
 
 	gauges := []Gauge{
-		{"Alloc", GaugeValue(memStats.Alloc)},
-		{"BuckHashSys", GaugeValue(memStats.BuckHashSys)},
-		{"Frees", GaugeValue(memStats.Frees)},
-		{"GCCPUFraction", GaugeValue(memStats.GCCPUFraction)},
-		{"GCSys", GaugeValue(memStats.GCSys)},
-		{"HeapAlloc", GaugeValue(memStats.HeapAlloc)},
-		{"HeapIdle", GaugeValue(memStats.HeapIdle)},
-		{"HeapInuse", GaugeValue(memStats.HeapInuse)},
-		{"HeapObjects", GaugeValue(memStats.HeapObjects)},
-		{"HeapReleased", GaugeValue(memStats.HeapReleased)},
-		{"HeapSys", GaugeValue(memStats.HeapSys)},
-		{"LastGC", GaugeValue(memStats.LastGC)},
-		{"Lookups", GaugeValue(memStats.Lookups)},
-		{"MCacheInuse", GaugeValue(memStats.MCacheInuse)},
-		{"MCacheSys", GaugeValue(memStats.MCacheSys)},
-		{"MSpanInuse", GaugeValue(memStats.MSpanInuse)},
-		{"MSpanSys", GaugeValue(memStats.MSpanSys)},
-		{"Mallocs", GaugeValue(memStats.Mallocs)},
-		{"NextGC", GaugeValue(memStats.NextGC)},
-		{"NumForcedGC", GaugeValue(memStats.NumForcedGC)},
-		{"NumGC", GaugeValue(memStats.NumGC)},
-		{"OtherSys", GaugeValue(memStats.OtherSys)},
-		{"PauseTotalNs", GaugeValue(memStats.PauseTotalNs)},
-		{"StackInuse", GaugeValue(memStats.StackInuse)},
-		{"StackSys", GaugeValue(memStats.StackSys)},
-		{"Sys", GaugeValue(memStats.Sys)},
-		{"TotalAlloc", GaugeValue(memStats.TotalAlloc)},
+		{"Alloc", float64(memStats.Alloc)},
+		{"BuckHashSys", float64(memStats.BuckHashSys)},
+		{"Frees", float64(memStats.Frees)},
+		{"GCCPUFraction", float64(memStats.GCCPUFraction)},
+		{"GCSys", float64(memStats.GCSys)},
+		{"HeapAlloc", float64(memStats.HeapAlloc)},
+		{"HeapIdle", float64(memStats.HeapIdle)},
+		{"HeapInuse", float64(memStats.HeapInuse)},
+		{"HeapObjects", float64(memStats.HeapObjects)},
+		{"HeapReleased", float64(memStats.HeapReleased)},
+		{"HeapSys", float64(memStats.HeapSys)},
+		{"LastGC", float64(memStats.LastGC)},
+		{"Lookups", float64(memStats.Lookups)},
+		{"MCacheInuse", float64(memStats.MCacheInuse)},
+		{"MCacheSys", float64(memStats.MCacheSys)},
+		{"MSpanInuse", float64(memStats.MSpanInuse)},
+		{"MSpanSys", float64(memStats.MSpanSys)},
+		{"Mallocs", float64(memStats.Mallocs)},
+		{"NextGC", float64(memStats.NextGC)},
+		{"NumForcedGC", float64(memStats.NumForcedGC)},
+		{"NumGC", float64(memStats.NumGC)},
+		{"OtherSys", float64(memStats.OtherSys)},
+		{"PauseTotalNs", float64(memStats.PauseTotalNs)},
+		{"StackInuse", float64(memStats.StackInuse)},
+		{"StackSys", float64(memStats.StackSys)},
+		{"Sys", float64(memStats.Sys)},
+		{"TotalAlloc", float64(memStats.TotalAlloc)},
 	}
 
 	return gauges
 }
 
 func GetRandomGauge() Gauge {
-	return Gauge{"RandomValue", GaugeValue(rand.Float64())}
+	return Gauge{"RandomValue", rand.Float64()}
 }
 
-func GetCounter(count CounterValue) Counter {
+func GetCounter(count int64) Counter {
 	return Counter{"PollCount", count}
 }
 

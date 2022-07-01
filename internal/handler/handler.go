@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/Kuart/metric-collector/internal/metric"
 	"github.com/Kuart/metric-collector/internal/storage"
@@ -11,89 +12,159 @@ import (
 )
 
 const (
-	notIntError     = "value is not int type"
-	notFloatError   = "value is not float type"
-	metricTypeError = "metric type not implemented"
-	metricNotFound  = "metric \"%s\" is not found"
+	notIntError         = "value is not int type"
+	notFloatError       = "value is not float type"
+	metricTypeError     = "metric type not implemented"
+	metricNotFoundError = "metric \"%s\" is not found"
+	JSONDecodeError     = "error in JSON decode"
+	JSONValidationError = "JSON validation fail: \"%s\""
 )
 
-func SetRoutes(r *chi.Mux) {
-	r.Get("/value/{type}/{name}", MetricValueHandler)
-	r.Route("/update", func(r chi.Router) {
-		r.Post("/{type}/{name}/{value}", UpdateHandler)
-	})
-	r.Get("/", MetricsPageHandler)
+type MetricHandler struct {
+	controller storage.Controller
 }
 
-func UpdateHandler(w http.ResponseWriter, r *http.Request) {
+func NewHandler(controller storage.Controller) MetricHandler {
+	InitMetricValidator()
+	return MetricHandler{
+		controller: controller,
+	}
+}
+
+func (h MetricHandler) Update(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "type")
 
 	switch metricType {
 	case metric.GaugeTypeName:
-		GaugeHandler(w, r)
+		h.Gauge(w, r)
 	case metric.CounterTypeName:
-		CounterHandler(w, r)
+		h.Counter(w, r)
 	default:
 		http.Error(w, metricTypeError, http.StatusNotImplemented)
 	}
 }
 
-func CounterHandler(w http.ResponseWriter, r *http.Request) {
+func (h *MetricHandler) Counter(w http.ResponseWriter, r *http.Request) {
 	name, valueString := chi.URLParam(r, "name"), chi.URLParam(r, "value")
-
 	value, err := strconv.ParseInt(valueString, 10, 64)
 
 	if err != nil {
 		http.Error(w, notIntError, http.StatusBadRequest)
-	} else {
-		storage.CounterUpdate(name, value)
-		w.WriteHeader(http.StatusOK)
+		return
 	}
+
+	m := metric.Metric{
+		ID:    name,
+		MType: metric.CounterTypeName,
+		Delta: &value,
+	}
+
+	h.controller.UpdateStorage(m)
+	w.WriteHeader(http.StatusOK)
 }
 
-func GaugeHandler(w http.ResponseWriter, r *http.Request) {
+func (h *MetricHandler) Gauge(w http.ResponseWriter, r *http.Request) {
 	name, valueString := chi.URLParam(r, "name"), chi.URLParam(r, "value")
 	value, err := strconv.ParseFloat(valueString, 64)
 
 	if err != nil {
 		http.Error(w, notFloatError, http.StatusBadRequest)
-	} else {
-		storage.GaugeUpdate(name, value)
-		w.WriteHeader(http.StatusOK)
+		return
 	}
+
+	m := metric.Metric{
+		ID:    name,
+		MType: metric.GaugeTypeName,
+		Value: &value,
+	}
+
+	h.controller.UpdateStorage(m)
+	w.WriteHeader(http.StatusOK)
+
 }
 
-func MetricValueHandler(w http.ResponseWriter, r *http.Request) {
+func (h MetricHandler) MetricValue(w http.ResponseWriter, r *http.Request) {
 	metricType, name := chi.URLParam(r, "type"), chi.URLParam(r, "name")
 
 	if metricType == metric.GaugeTypeName {
-		metric, ok := storage.GetGaugeMetric(name)
+		metric, ok := h.controller.GetMetric(metric.Metric{ID: name, MType: metric.GaugeTypeName})
 
 		if !ok {
-			http.Error(w, fmt.Sprintf(metricNotFound, name), http.StatusNotFound)
+			http.Error(w, fmt.Sprintf(metricNotFoundError, name), http.StatusNotFound)
+			return
 		}
 
-		w.Write([]byte(fmt.Sprint(metric)))
+		w.Write([]byte(fmt.Sprint(*metric.Value)))
 		w.WriteHeader(http.StatusOK)
 	} else if metricType == metric.CounterTypeName {
-		metric, ok := storage.GetCounterMetric(name)
+		metric, ok := h.controller.GetMetric(metric.Metric{ID: name, MType: metric.CounterTypeName})
 
 		if !ok {
-			http.Error(w, fmt.Sprintf(metricNotFound, name), http.StatusNotFound)
+			http.Error(w, fmt.Sprintf(metricNotFoundError, name), http.StatusNotFound)
+			return
 		}
-		w.Write([]byte(fmt.Sprint(metric)))
+
+		w.Write([]byte(fmt.Sprint(*metric.Delta)))
 		w.WriteHeader(http.StatusOK)
 	} else {
-		http.Error(w, fmt.Sprintf(metricNotFound, name), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf(metricNotFoundError, name), http.StatusNotFound)
 	}
-
 }
 
-func MetricsPageHandler(w http.ResponseWriter, r *http.Request) {
-	renderData := map[string]interface{}{
-		"gaugeMetrics":   storage.GetGaugeStorage(),
-		"counterMetrics": storage.GetCounterStorage(),
+func (h MetricHandler) MetricsPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	template.HTMLTemplate.Execute(w, h.controller.GetAllMetrics())
+}
+
+func (h *MetricHandler) JSONUpdate(w http.ResponseWriter, r *http.Request) {
+	var req metric.Metric
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, JSONDecodeError, http.StatusBadRequest)
+		return
 	}
 
-	template.HTMLTemplate.Execute(w, renderData)
+	if err := ValidateStruct(req); err != nil {
+		http.Error(w, fmt.Sprintf(JSONValidationError, err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	m := metric.Metric{ID: req.ID, MType: req.MType}
+
+	if req.MType == metric.GaugeTypeName {
+		m.Value = req.Value
+		h.controller.UpdateStorage(m)
+		return
+	}
+
+	m.Delta = req.Delta
+	h.controller.UpdateStorage(m)
+}
+
+func (h MetricHandler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
+	var req MetricReq
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, JSONDecodeError, http.StatusBadRequest)
+		return
+	}
+
+	if err := validate.Struct(req); err != nil {
+		http.Error(w, fmt.Sprintf(JSONValidationError, err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	m, ok := h.controller.GetMetric(metric.Metric{
+		ID:    req.ID,
+		MType: req.MType,
+	})
+
+	if !ok {
+		http.Error(w, fmt.Sprintf(metricNotFoundError, req.ID), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(m)
+	w.WriteHeader(http.StatusOK)
 }
