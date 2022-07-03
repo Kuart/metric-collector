@@ -5,7 +5,6 @@ import (
 	config "github.com/Kuart/metric-collector/config/server"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 	"log"
@@ -63,11 +62,7 @@ func (db DB) Ping() bool {
 
 	err := db.instance.Ping()
 
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 func (db DB) Close() {
