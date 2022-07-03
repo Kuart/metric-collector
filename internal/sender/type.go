@@ -1,10 +1,12 @@
 package sender
 
-import "net/http"
+import (
+	"github.com/Kuart/metric-collector/internal/encryption"
+	"net/http"
+)
 
 type Client struct {
-	host       string
-	port       string
 	updatePath string
+	crypto     encryption.Encryption
 	client     *http.Client
 }

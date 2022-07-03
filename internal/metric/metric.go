@@ -28,6 +28,24 @@ type Metric struct {
 	MType string   `json:"type" validate:"required,oneof='gauge' 'counter'"`
 	Delta *int64   `json:"delta,omitempty"`
 	Value *float64 `json:"value,omitempty"`
+	Hash  string   `json:"hash,omitempty"`
+}
+
+func NewMetricToSend[V float64 | int64](ID string, MType string, Value V) Metric {
+	m := Metric{
+		ID:    ID,
+		MType: MType,
+	}
+
+	if MType == GaugeTypeName {
+		v := float64(Value)
+		m.Value = &v
+	} else if MType == CounterTypeName {
+		v := int64(Value)
+		m.Delta = &v
+	}
+
+	return m
 }
 
 func GetGauge() []Gauge {

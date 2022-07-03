@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Kuart/metric-collector/internal/encryption"
 	"github.com/Kuart/metric-collector/internal/metric"
 	"github.com/Kuart/metric-collector/internal/storage"
 	"github.com/Kuart/metric-collector/internal/template"
@@ -22,12 +23,15 @@ const (
 
 type MetricHandler struct {
 	controller storage.Controller
+	validator  Validator
+	crypto     encryption.Encryption
 }
 
-func NewHandler(controller storage.Controller) MetricHandler {
-	InitMetricValidator()
+func NewHandler(controller storage.Controller, c encryption.Encryption) MetricHandler {
 	return MetricHandler{
 		controller: controller,
+		crypto:     c,
+		validator:  NewValidator(c),
 	}
 }
 
@@ -124,7 +128,7 @@ func (h *MetricHandler) JSONUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := ValidateStruct(req); err != nil {
+	if err := h.validator.ValidateStruct(req); err != nil {
 		http.Error(w, fmt.Sprintf(JSONValidationError, err.Error()), http.StatusBadRequest)
 		return
 	}
@@ -149,7 +153,7 @@ func (h MetricHandler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validate.Struct(req); err != nil {
+	if err := h.validator.validate.Struct(req); err != nil {
 		http.Error(w, fmt.Sprintf(JSONValidationError, err.Error()), http.StatusBadRequest)
 		return
 	}
@@ -164,7 +168,9 @@ func (h MetricHandler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	result := h.crypto.EncodeMetric(m)
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(m)
+	json.NewEncoder(w).Encode(result)
 	w.WriteHeader(http.StatusOK)
 }
