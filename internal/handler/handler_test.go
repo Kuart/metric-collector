@@ -4,8 +4,6 @@ import (
 	config "github.com/Kuart/metric-collector/config/server"
 	"github.com/Kuart/metric-collector/internal/encryption"
 	"github.com/Kuart/metric-collector/internal/storage"
-	"github.com/Kuart/metric-collector/internal/storage/file"
-	"github.com/Kuart/metric-collector/internal/storage/inmemory"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -37,9 +35,7 @@ func TestUpdateHandler(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			servConf := config.New()
-			inmemory := inmemory.New()
-			fileStorage := file.New(servConf)
-			controller := storage.New(servConf, inmemory, fileStorage)
+			controller := storage.New(servConf)
 
 			crypto := encryption.New(servConf.Key)
 			metricHandler := NewHandler(controller, crypto)
@@ -98,9 +94,7 @@ func TestCounterHandler(t *testing.T) {
 				Address:   "127.0.0.1:8080",
 			}
 
-			inmemoryStorage := inmemory.New()
-			fileStorage := file.New(config)
-			controller := storage.New(config, inmemoryStorage, fileStorage)
+			controller := storage.New(config)
 
 			crypto := encryption.New(config.Key)
 			metricHandler := NewHandler(controller, crypto)
@@ -158,10 +152,7 @@ func TestGaugeHandler(t *testing.T) {
 				StoreFile: "",
 				Address:   "127.0.0.1:8080",
 			}
-
-			inmemoryStorage := inmemory.New()
-			fileStorage := file.New(config)
-			controller := storage.New(config, inmemoryStorage, fileStorage)
+			controller := storage.New(config)
 
 			crypto := encryption.New(config.Key)
 			metricHandler := NewHandler(controller, crypto)

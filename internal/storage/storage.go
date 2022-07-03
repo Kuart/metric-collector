@@ -3,6 +3,7 @@ package storage
 import (
 	config "github.com/Kuart/metric-collector/config/server"
 	"github.com/Kuart/metric-collector/internal/metric"
+	"github.com/Kuart/metric-collector/internal/storage/database"
 	"github.com/Kuart/metric-collector/internal/storage/file"
 	"github.com/Kuart/metric-collector/internal/storage/inmemory"
 	"html/template"
@@ -13,16 +14,18 @@ import (
 type Controller struct {
 	inmemory inmemory.Storage
 	file     file.Storage
+	db       database.DB
 	sCfg     config.Config
 	isSync   bool
+	isUseDB  bool
 }
 
 var HTMLTemplate *template.Template
 
-func New(sCfg config.Config, inmemory inmemory.Storage, file file.Storage) Controller {
+func New(sCfg config.Config) Controller {
 	controller := Controller{
-		inmemory: inmemory,
-		file:     file,
+		inmemory: inmemory.New(),
+		file:     file.New(sCfg),
 		sCfg:     sCfg,
 	}
 
@@ -36,6 +39,15 @@ func New(sCfg config.Config, inmemory inmemory.Storage, file file.Storage) Contr
 
 	if sCfg.StoreInterval == 0 {
 		controller.isSync = true
+	}
+
+	if sCfg.DatabaseDSN != "" {
+		dtb, err := database.New(sCfg)
+
+		if err == nil {
+			controller.db = dtb
+			controller.isUseDB = true
+		}
 	}
 
 	return controller
@@ -93,4 +105,12 @@ func (c Controller) GetAllMetrics() map[string]interface{} {
 func (c Controller) SaveToFile() {
 	metrics := c.GetAllMetrics()
 	c.file.Save(metrics)
+}
+
+func (c Controller) PingDB() bool {
+	return c.db.Ping()
+}
+
+func (c Controller) Close() {
+	c.file.CloseFile()
 }

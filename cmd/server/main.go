@@ -5,17 +5,13 @@ import (
 	"github.com/Kuart/metric-collector/internal/encryption"
 	"github.com/Kuart/metric-collector/internal/handler"
 	"github.com/Kuart/metric-collector/internal/storage"
-	"github.com/Kuart/metric-collector/internal/storage/file"
-	"github.com/Kuart/metric-collector/internal/storage/inmemory"
 	"github.com/Kuart/metric-collector/internal/template"
 	"net/http"
 )
 
 func main() {
 	config := serverConfig.New()
-	inmemoryStorage := inmemory.New()
-	fileStorage := file.New(config)
-	controller := storage.New(config, inmemoryStorage, fileStorage)
+	controller := storage.New(config)
 	crypto := encryption.New(config.Key)
 	template.SetupMetricTemplate()
 
@@ -29,5 +25,5 @@ func main() {
 
 	server.ListenAndServe()
 
-	defer fileStorage.CloseFile()
+	defer controller.Close()
 }

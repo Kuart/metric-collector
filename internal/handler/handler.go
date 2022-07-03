@@ -174,3 +174,13 @@ func (h MetricHandler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 	w.WriteHeader(http.StatusOK)
 }
+
+func (h MetricHandler) PingDB(w http.ResponseWriter, r *http.Request) {
+	ok := h.controller.PingDB()
+
+	if !ok {
+		http.Error(w, "database not responding", http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
