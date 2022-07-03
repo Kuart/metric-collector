@@ -2,6 +2,7 @@ package handler
 
 import (
 	config "github.com/Kuart/metric-collector/config/server"
+	"github.com/Kuart/metric-collector/internal/encryption"
 	"github.com/Kuart/metric-collector/internal/storage"
 	"github.com/Kuart/metric-collector/internal/storage/file"
 	"github.com/Kuart/metric-collector/internal/storage/inmemory"
@@ -40,7 +41,8 @@ func TestUpdateHandler(t *testing.T) {
 			fileStorage := file.New(servConf)
 			controller := storage.New(servConf, inmemory, fileStorage)
 
-			metricHandler := NewHandler(controller)
+			crypto := encryption.New(servConf.Key)
+			metricHandler := NewHandler(controller, crypto)
 			NewRouter(metricHandler)
 
 			h := http.HandlerFunc(metricHandler.Update)
@@ -98,9 +100,10 @@ func TestCounterHandler(t *testing.T) {
 
 			inmemoryStorage := inmemory.New()
 			fileStorage := file.New(config)
-			srgController := storage.New(config, inmemoryStorage, fileStorage)
+			controller := storage.New(config, inmemoryStorage, fileStorage)
 
-			metricHandler := NewHandler(srgController)
+			crypto := encryption.New(config.Key)
+			metricHandler := NewHandler(controller, crypto)
 			r := NewRouter(metricHandler)
 
 			r.HandleFunc(pattern, metricHandler.Counter)
@@ -158,9 +161,10 @@ func TestGaugeHandler(t *testing.T) {
 
 			inmemoryStorage := inmemory.New()
 			fileStorage := file.New(config)
-			srgController := storage.New(config, inmemoryStorage, fileStorage)
+			controller := storage.New(config, inmemoryStorage, fileStorage)
 
-			metricHandler := NewHandler(srgController)
+			crypto := encryption.New(config.Key)
+			metricHandler := NewHandler(controller, crypto)
 			r := NewRouter(metricHandler)
 
 			r.HandleFunc(pattern, metricHandler.Gauge)

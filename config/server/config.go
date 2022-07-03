@@ -22,7 +22,7 @@ type Config struct {
 	StoreInterval time.Duration `env:"STORE_INTERVAL" envDefault:"300s"`
 	StoreFile     string        `env:"STORE_FILE" envDefault:"/tmp/devops-metrics-db.json"`
 	Restore       bool          `env:"RESTORE" envDefault:"true"`
-	Key           string        `env:"KEY" envDefault:"test"`
+	Key           string        `env:"KEY"`
 }
 
 type flagConfig struct {
