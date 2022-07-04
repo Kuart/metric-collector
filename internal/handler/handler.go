@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/Kuart/metric-collector/internal/encryption"
@@ -8,8 +9,10 @@ import (
 	"github.com/Kuart/metric-collector/internal/storage"
 	"github.com/Kuart/metric-collector/internal/template"
 	"github.com/go-chi/chi/v5"
+	"log"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 const (
@@ -17,7 +20,9 @@ const (
 	notFloatError       = "value is not float type"
 	metricTypeError     = "metric type not implemented"
 	metricNotFoundError = "metric \"%s\" is not found"
+	metricsGetError     = "error while getting all metrics"
 	JSONDecodeError     = "error in JSON decode"
+	storageUpdateError  = "error during storage update"
 	JSONValidationError = "JSON validation fail: \"%s\""
 )
 
@@ -49,6 +54,8 @@ func (h MetricHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MetricHandler) Counter(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
 	name, valueString := chi.URLParam(r, "name"), chi.URLParam(r, "value")
 	value, err := strconv.ParseInt(valueString, 10, 64)
 
@@ -63,11 +70,20 @@ func (h *MetricHandler) Counter(w http.ResponseWriter, r *http.Request) {
 		Delta: &value,
 	}
 
-	h.controller.UpdateStorage(m)
+	err = h.controller.UpdateStorage(ctx, m)
+
+	if err != nil {
+		log.Printf(storageUpdateError+":%s", err.Error())
+		http.Error(w, storageUpdateError, http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 }
 
 func (h *MetricHandler) Gauge(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
 	name, valueString := chi.URLParam(r, "name"), chi.URLParam(r, "value")
 	value, err := strconv.ParseFloat(valueString, 64)
 
@@ -82,16 +98,25 @@ func (h *MetricHandler) Gauge(w http.ResponseWriter, r *http.Request) {
 		Value: &value,
 	}
 
-	h.controller.UpdateStorage(m)
+	err = h.controller.UpdateStorage(ctx, m)
+
+	if err != nil {
+		log.Printf(storageUpdateError+":%s", err.Error())
+		http.Error(w, storageUpdateError, http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 
 }
 
 func (h MetricHandler) MetricValue(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
 	metricType, name := chi.URLParam(r, "type"), chi.URLParam(r, "name")
 
 	if metricType == metric.GaugeTypeName {
-		metric, ok := h.controller.GetMetric(metric.Metric{ID: name, MType: metric.GaugeTypeName})
+		metric, ok := h.controller.GetMetric(ctx, metric.Metric{ID: name, MType: metric.GaugeTypeName})
 
 		if !ok {
 			http.Error(w, fmt.Sprintf(metricNotFoundError, name), http.StatusNotFound)
@@ -101,7 +126,7 @@ func (h MetricHandler) MetricValue(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprint(*metric.Value)))
 		w.WriteHeader(http.StatusOK)
 	} else if metricType == metric.CounterTypeName {
-		metric, ok := h.controller.GetMetric(metric.Metric{ID: name, MType: metric.CounterTypeName})
+		metric, ok := h.controller.GetMetric(ctx, metric.Metric{ID: name, MType: metric.CounterTypeName})
 
 		if !ok {
 			http.Error(w, fmt.Sprintf(metricNotFoundError, name), http.StatusNotFound)
@@ -116,11 +141,22 @@ func (h MetricHandler) MetricValue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h MetricHandler) MetricsPage(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	metrics, err := h.controller.GetAllMetrics(ctx)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf(metricsGetError+": %s", err), http.StatusNotImplemented)
+		return
+	}
+
 	w.Header().Set("Content-Type", "text/html")
-	template.HTMLTemplate.Execute(w, h.controller.GetAllMetrics())
+	template.HTMLTemplate.Execute(w, metrics)
 }
 
 func (h *MetricHandler) JSONUpdate(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
 	var req metric.Metric
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -137,15 +173,27 @@ func (h *MetricHandler) JSONUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if req.MType == metric.GaugeTypeName {
 		m.Value = req.Value
-		h.controller.UpdateStorage(m)
+		err := h.controller.UpdateStorage(ctx, m)
+
+		if err != nil {
+			log.Printf(storageUpdateError+":%s", err.Error())
+			http.Error(w, storageUpdateError, http.StatusInternalServerError)
+		}
 		return
 	}
 
 	m.Delta = req.Delta
-	h.controller.UpdateStorage(m)
+	err := h.controller.UpdateStorage(ctx, m)
+
+	if err != nil {
+		log.Printf(storageUpdateError+":%s", err.Error())
+		http.Error(w, storageUpdateError, http.StatusInternalServerError)
+	}
 }
 
 func (h MetricHandler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
 	var req MetricReq
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -158,7 +206,7 @@ func (h MetricHandler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m, ok := h.controller.GetMetric(metric.Metric{
+	m, ok := h.controller.GetMetric(ctx, metric.Metric{
 		ID:    req.ID,
 		MType: req.MType,
 	})

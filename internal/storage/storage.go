@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	config "github.com/Kuart/metric-collector/config/server"
 	"github.com/Kuart/metric-collector/internal/metric"
 	"github.com/Kuart/metric-collector/internal/storage/database"
@@ -29,6 +30,16 @@ func New(sCfg config.Config) Controller {
 		sCfg:     sCfg,
 	}
 
+	if sCfg.DatabaseDSN != "" {
+		dtb, err := database.New(sCfg)
+
+		if err == nil {
+			controller.db = dtb
+			controller.isUseDB = true
+			return controller
+		}
+	}
+
 	if sCfg.Restore {
 		controller.LoadToStorage()
 	}
@@ -41,24 +52,16 @@ func New(sCfg config.Config) Controller {
 		controller.isSync = true
 	}
 
-	if sCfg.DatabaseDSN != "" {
-		dtb, err := database.New(sCfg)
-
-		if err == nil {
-			controller.db = dtb
-			controller.isUseDB = true
-		}
-	}
-
 	return controller
 }
 
 func (c Controller) initFileSave(interval time.Duration) {
+	ctx := context.Background()
 	ticker := time.NewTicker(interval)
 
 	for {
 		<-ticker.C
-		c.SaveToFile()
+		c.SaveToFile(ctx)
 	}
 }
 
@@ -73,7 +76,11 @@ func (c Controller) LoadToStorage() {
 	c.inmemory.UpdateFromFile(data)
 }
 
-func (c Controller) UpdateStorage(m metric.Metric) {
+func (c Controller) UpdateStorage(ctx context.Context, m metric.Metric) error {
+	if c.isUseDB {
+		return c.db.Update(ctx, m)
+	}
+
 	if m.MType == metric.GaugeTypeName {
 		c.inmemory.GaugeUpdate(m.ID, *m.Value)
 	} else if m.MType == metric.CounterTypeName {
@@ -81,11 +88,17 @@ func (c Controller) UpdateStorage(m metric.Metric) {
 	}
 
 	if c.isSync {
-		c.SaveToFile()
+		c.SaveToFile(ctx)
 	}
+
+	return nil
 }
 
-func (c Controller) GetMetric(m metric.Metric) (metric.Metric, bool) {
+func (c Controller) GetMetric(ctx context.Context, m metric.Metric) (metric.Metric, bool) {
+	if c.isUseDB {
+		return c.db.GetMetric(ctx, m)
+	}
+
 	if m.MType == metric.GaugeTypeName {
 		return c.inmemory.GetGaugeMetric(m.ID)
 	}
@@ -93,17 +106,45 @@ func (c Controller) GetMetric(m metric.Metric) (metric.Metric, bool) {
 	return c.inmemory.GetCounterMetric(m.ID)
 }
 
-func (c Controller) GetAllMetrics() map[string]interface{} {
+func (c Controller) GetAllMetrics(ctx context.Context) (map[string]interface{}, error) {
+	if c.isUseDB {
+		gauge, err := c.db.GetAllMetrics(ctx, metric.GaugeTypeName)
+
+		if err != nil {
+			log.Printf("get all gauge err: %s", err)
+			return nil, err
+		}
+
+		counter, err := c.db.GetAllMetrics(ctx, metric.CounterTypeName)
+
+		if err != nil {
+			log.Printf("get all counter err: %s", err)
+			return nil, err
+		}
+
+		metrics := map[string]interface{}{
+			"Gauge":   gauge,
+			"Counter": counter,
+		}
+
+		return metrics, nil
+	}
+
 	metrics := map[string]interface{}{
 		"Gauge":   c.inmemory.GetGauge(),
 		"Counter": c.inmemory.GetCounter(),
 	}
 
-	return metrics
+	return metrics, nil
 }
 
-func (c Controller) SaveToFile() {
-	metrics := c.GetAllMetrics()
+func (c Controller) SaveToFile(ctx context.Context) {
+	metrics, err := c.GetAllMetrics(ctx)
+
+	if err != nil {
+		log.Printf("get all metrics err: %s", err)
+	}
+
 	c.file.Save(metrics)
 }
 
@@ -113,4 +154,5 @@ func (c Controller) PingDB() bool {
 
 func (c Controller) Close() {
 	c.file.CloseFile()
+	c.db.Close()
 }

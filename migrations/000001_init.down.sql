@@ -1,3 +1,3 @@
-DROP TABLE gauges
+DROP TABLE gauge
 
-DROP TABLE counters
+DROP TABLE counter
