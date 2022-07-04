@@ -19,7 +19,6 @@ type Config struct {
 	Address        string        `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
 	ReportInterval time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
 	PollInterval   time.Duration `env:"POLL_INTERVAL" envDefault:"2s"`
-	DBPingInterval time.Duration `env:"DB_PING_INTERVAL" envDefault:"30s"`
 	Key            string        `env:"KEY"`
 }
 

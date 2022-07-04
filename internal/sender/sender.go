@@ -30,12 +30,10 @@ func NewMetricClient(config config.Config, crypto encryption.Encryption) *Client
 }
 
 func (c Client) SendMetrics(gauge metric.GaugeState, counter metric.Counter) {
-	if c.isBatchEnable {
-		err := c.sendBatchMetrics(gauge, counter)
+	err := c.sendBatchMetrics(gauge, counter)
 
-		if err == nil {
-			return
-		}
+	if err == nil {
+		return
 	}
 
 	c.sendGauge(gauge)
@@ -86,17 +84,6 @@ func (c *Client) sendGauge(gauge metric.GaugeState) {
 		body := metric.NewMetricToSend(key, metric.GaugeTypeName, value)
 		c.doRequest(body)
 	}
-}
-
-func (c *Client) PingDB() {
-	res, err := c.client.Get(c.pingPath)
-
-	if err != nil || res.StatusCode != http.StatusOK {
-		c.isBatchEnable = false
-		return
-	}
-
-	c.isBatchEnable = true
 }
 
 func (c *Client) sendCounter(counter metric.Counter) {

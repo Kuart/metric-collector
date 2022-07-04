@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"errors"
 	config "github.com/Kuart/metric-collector/config/server"
 	"github.com/Kuart/metric-collector/internal/metric"
 	"github.com/Kuart/metric-collector/internal/storage/database"
@@ -138,12 +137,20 @@ func (c Controller) GetAllMetrics(ctx context.Context) (map[string]interface{}, 
 	return metrics, nil
 }
 
-func (c Controller) GroupUpdateStorage(metrics []metric.Metric) error {
-	if !c.isUseDB {
-		return errors.New("db is not connected")
+func (c Controller) GroupUpdateStorage(ctx context.Context, metrics []metric.Metric) error {
+	if c.isUseDB {
+		return c.db.BatchUpdate(metrics)
 	}
 
-	return c.db.BatchUpdate(metrics)
+	for _, v := range metrics {
+		err := c.UpdateStorage(ctx, v)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (c Controller) SaveToFile(ctx context.Context) {

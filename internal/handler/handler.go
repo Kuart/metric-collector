@@ -234,6 +234,8 @@ func (h MetricHandler) PingDB(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h MetricHandler) GroupUpdate(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
 	var metrics []metric.Metric
 	var approvedMetrics []metric.Metric
 
@@ -250,7 +252,7 @@ func (h MetricHandler) GroupUpdate(w http.ResponseWriter, r *http.Request) {
 		approvedMetrics = append(approvedMetrics, mtr)
 	}
 
-	err := h.controller.GroupUpdateStorage(approvedMetrics)
+	err := h.controller.GroupUpdateStorage(ctx, approvedMetrics)
 
 	if err != nil {
 		log.Printf("group update fail %s", err.Error())

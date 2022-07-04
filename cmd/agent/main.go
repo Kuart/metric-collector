@@ -15,14 +15,12 @@ func main() {
 	config := agentConfig.New()
 	crypto := encryption.New(config.Key)
 	client := sender.NewMetricClient(config, crypto)
-	client.PingDB()
 
 	osSign := make(chan os.Signal, 1)
 	signal.Notify(osSign, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	pollTicker := time.NewTicker(config.PollInterval)
 	reportTicker := time.NewTicker(config.ReportInterval)
-	dbPingTicker := time.NewTicker(config.DBPingInterval)
 
 	var randomGauge metric.Gauge
 	counter := metric.GetCounter(0)
@@ -43,8 +41,6 @@ func main() {
 
 			counter.Clear()
 			gaugeMetrics = metric.GaugeState{}
-		case <-dbPingTicker.C:
-			client.PingDB()
 		case <-osSign:
 			os.Exit(0)
 		}
