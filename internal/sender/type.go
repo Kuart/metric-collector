@@ -8,6 +8,8 @@ import (
 type Client struct {
 	updatePath      string
 	batchUpdatePath string
+	pingPath        string
+	isBatchEnable   bool
 	crypto          encryption.Encryption
 	client          *http.Client
 }

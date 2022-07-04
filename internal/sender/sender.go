@@ -14,17 +14,35 @@ import (
 func NewMetricClient(config config.Config, crypto encryption.Encryption) *Client {
 	updatePath := fmt.Sprintf("http://%s/update", config.Address)
 	batchUpdatePath := fmt.Sprintf("http://%s/updates", config.Address)
-	return &Client{
+	pingPath := fmt.Sprintf("http://%s/ping", config.Address)
+
+	cl := &Client{
 		updatePath:      updatePath,
 		batchUpdatePath: batchUpdatePath,
+		pingPath:        pingPath,
 		crypto:          crypto,
 		client: &http.Client{
 			Timeout: config.PollInterval,
 		},
 	}
+
+	return cl
 }
 
-func (c *Client) SendMetrics(gauge metric.GaugeState, counter metric.Counter) {
+func (c Client) SendMetrics(gauge metric.GaugeState, counter metric.Counter) {
+	if c.isBatchEnable {
+		err := c.sendBatchMetrics(gauge, counter)
+
+		if err == nil {
+			return
+		}
+	}
+
+	c.sendGauge(gauge)
+	c.sendCounter(counter)
+}
+
+func (c *Client) sendBatchMetrics(gauge metric.GaugeState, counter metric.Counter) error {
 	body := make([]metric.Metric, 0, len(gauge)+1)
 
 	for key, value := range gauge {
@@ -37,14 +55,14 @@ func (c *Client) SendMetrics(gauge metric.GaugeState, counter metric.Counter) {
 
 	if len(body) == 0 {
 		log.Printf("nothing to send, metrics are empty")
-		return
+		return nil
 	}
 
 	jsonValue, err := json.Marshal(body)
 
 	if err != nil {
 		log.Printf("metrics not sended, json marshal err: %s", err)
-		return
+		return nil
 	}
 
 	buff := bytes.NewBuffer(jsonValue)
@@ -52,7 +70,7 @@ func (c *Client) SendMetrics(gauge metric.GaugeState, counter metric.Counter) {
 
 	if err != nil {
 		log.Printf("metrics not sended, err: %s", err)
-		return
+		return err
 	}
 
 	response.Header.Set("Content-Encoding", "gzip")
@@ -60,6 +78,7 @@ func (c *Client) SendMetrics(gauge metric.GaugeState, counter metric.Counter) {
 	log.Printf("metrics batch sent, path %s", c.batchUpdatePath)
 
 	defer response.Body.Close()
+	return nil
 }
 
 func (c *Client) sendGauge(gauge metric.GaugeState) {
@@ -67,6 +86,17 @@ func (c *Client) sendGauge(gauge metric.GaugeState) {
 		body := metric.NewMetricToSend(key, metric.GaugeTypeName, value)
 		c.doRequest(body)
 	}
+}
+
+func (c *Client) PingDB() {
+	res, err := c.client.Get(c.pingPath)
+
+	if err != nil || res.StatusCode != http.StatusOK {
+		c.isBatchEnable = false
+		return
+	}
+
+	c.isBatchEnable = true
 }
 
 func (c *Client) sendCounter(counter metric.Counter) {
