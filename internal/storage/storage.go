@@ -137,6 +137,10 @@ func (c Controller) GetAllMetrics(ctx context.Context) (map[string]interface{}, 
 	return metrics, nil
 }
 
+func (c Controller) GroupUpdateStorage(metrics []metric.Metric) error {
+	return c.db.BatchUpdate(metrics)
+}
+
 func (c Controller) SaveToFile(ctx context.Context) {
 	metrics, err := c.GetAllMetrics(ctx)
 

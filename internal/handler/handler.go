@@ -232,3 +232,31 @@ func (h MetricHandler) PingDB(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 }
+
+func (h MetricHandler) GroupUpdate(w http.ResponseWriter, r *http.Request) {
+	var metrics []metric.Metric
+	var approvedMetrics []metric.Metric
+
+	if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
+		http.Error(w, JSONDecodeError, http.StatusBadRequest)
+		return
+	}
+
+	for _, mtr := range metrics {
+		if err := h.validator.validate.Struct(mtr); err != nil {
+			log.Printf("metric '%s' is not valid: %s", mtr.ID, err.Error())
+			continue
+		}
+		approvedMetrics = append(approvedMetrics, mtr)
+	}
+
+	err := h.controller.GroupUpdateStorage(approvedMetrics)
+
+	if err != nil {
+		log.Printf("group update fail %s", err.Error())
+		http.Error(w, "group update fail", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}

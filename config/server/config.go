@@ -22,7 +22,7 @@ type Config struct {
 	Address       string        `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
 	StoreInterval time.Duration `env:"STORE_INTERVAL" envDefault:"300s"`
 	StoreFile     string        `env:"STORE_FILE" envDefault:"/tmp/devops-metrics-db.json"`
-	DatabaseDSN   string        `env:"DATABASE_DSN"`
+	DatabaseDSN   string        `env:"DATABASE_DSN" envDefault:"postgresql://postgres:postgres_pass@localhost:5432/postgres?sslmode=disable"`
 	Restore       bool          `env:"RESTORE" envDefault:"true"`
 	Key           string        `env:"KEY"`
 }

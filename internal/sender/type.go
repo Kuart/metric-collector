@@ -6,7 +6,8 @@ import (
 )
 
 type Client struct {
-	updatePath string
-	crypto     encryption.Encryption
-	client     *http.Client
+	updatePath      string
+	batchUpdatePath string
+	crypto          encryption.Encryption
+	client          *http.Client
 }

@@ -166,6 +166,67 @@ func (db DB) GetAllMetrics(ctx context.Context, MType string) (map[string]interf
 	return metrics, nil
 }
 
+func (db DB) BatchUpdate(metrics []metric.Metric) error {
+	tx, err := db.instance.Begin()
+
+	if err != nil {
+		return err
+	}
+
+	gaugeStmt, err := tx.Prepare(`
+				INSERT INTO gauge (name, value)
+				VALUES ($1, $2) 
+				ON CONFLICT(name) 
+				DO UPDATE SET value =  $2;
+			`)
+
+	if err != nil {
+		return err
+	}
+
+	defer gaugeStmt.Close()
+
+	countStmt, err := tx.Prepare(`
+				INSERT INTO counter (name, value)
+				VALUES ($1, $2) 
+				ON CONFLICT(name) 
+				DO UPDATE SET value = counter.value + $2;
+			`)
+
+	if err != nil {
+		return err
+	}
+
+	defer countStmt.Close()
+
+	for _, v := range metrics {
+		if v.MType == metric.GaugeTypeName {
+			if _, err = gaugeStmt.Exec(v.ID, v.Value); err != nil {
+				log.Printf("gauge batch update error: %v", err)
+				if err = tx.Rollback(); err != nil {
+					log.Printf("update drivers: unable to rollback: %v", err)
+				}
+				return err
+			}
+		} else {
+			if _, err = countStmt.Exec(v.ID, v.Delta); err != nil {
+				log.Printf("counter batch update error: %v", err)
+				if err = tx.Rollback(); err != nil {
+					log.Printf("update drivers: unable to rollback: %v", err)
+				}
+				return err
+			}
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Printf("update drivers: unable to commit: %v", err)
+		return err
+	}
+
+	return nil
+}
+
 func (db DB) Close() {
 	db.instance.Close()
 }

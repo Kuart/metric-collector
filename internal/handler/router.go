@@ -19,6 +19,7 @@ func NewRouter(handler MetricHandler) *chi.Mux {
 		r.Post("/", handler.JSONUpdate)
 	})
 
+	r.Post("/updates", handler.GroupUpdate)
 	r.Get("/ping", handler.PingDB)
 	r.Get("/", handler.MetricsPage)
 
