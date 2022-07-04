@@ -76,10 +76,6 @@ func (c Controller) LoadToStorage() {
 }
 
 func (c Controller) UpdateStorage(ctx context.Context, m metric.Metric) error {
-	if c.isUseDB {
-		return c.db.Update(ctx, m)
-	}
-
 	if m.MType == metric.GaugeTypeName {
 		c.inmemory.GaugeUpdate(m.ID, *m.Value)
 	} else if m.MType == metric.CounterTypeName {
@@ -88,6 +84,10 @@ func (c Controller) UpdateStorage(ctx context.Context, m metric.Metric) error {
 
 	if c.isSync {
 		c.SaveToFile(ctx)
+	}
+
+	if c.isUseDB {
+		return c.db.Update(ctx, m)
 	}
 
 	return nil

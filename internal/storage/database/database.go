@@ -177,7 +177,7 @@ func (db DB) BatchUpdate(metrics []metric.Metric) error {
 				INSERT INTO gauge (name, value)
 				VALUES ($1, $2) 
 				ON CONFLICT(name) 
-				DO UPDATE SET value =  $2;
+				DO UPDATE SET value = $2;
 			`)
 
 	if err != nil {
@@ -190,7 +190,7 @@ func (db DB) BatchUpdate(metrics []metric.Metric) error {
 				INSERT INTO counter (name, value)
 				VALUES ($1, $2) 
 				ON CONFLICT(name) 
-				DO UPDATE SET value = counter.value + $2;
+				DO UPDATE SET value = $2;
 			`)
 
 	if err != nil {
