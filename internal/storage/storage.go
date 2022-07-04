@@ -36,7 +36,6 @@ func New(sCfg config.Config) Controller {
 		if err == nil {
 			controller.db = dtb
 			controller.isUseDB = true
-			return controller
 		}
 	}
 

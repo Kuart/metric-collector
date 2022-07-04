@@ -129,11 +129,11 @@ func (db DB) GetMetric(ctx context.Context, m metric.Metric) (metric.Metric, boo
 func (db DB) GetAllMetrics(ctx context.Context, MType string) (map[string]interface{}, error) {
 	metrics := make(map[string]interface{})
 	rows, err := db.instance.QueryContext(ctx, fmt.Sprintf("SELECT name, value FROM %s", MType))
-	defer rows.Close()
 
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		name := ""
