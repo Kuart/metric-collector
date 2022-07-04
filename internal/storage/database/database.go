@@ -109,13 +109,15 @@ func (db DB) GetMetric(ctx context.Context, m metric.Metric) (metric.Metric, boo
 	var err error
 	mtr := metric.Metric{
 		MType: m.MType,
+		ID:    m.ID,
 	}
-	row := db.instance.QueryRowContext(ctx, fmt.Sprintf("SELECT name, value FROM %s", m.MType))
+
+	row := db.instance.QueryRowContext(ctx, fmt.Sprintf("SELECT value FROM %s WHERE name = '%s'", m.MType, m.ID))
 
 	if m.MType == metric.CounterTypeName {
-		err = row.Scan(&mtr.ID, &mtr.Delta)
+		err = row.Scan(&mtr.Delta)
 	} else {
-		err = row.Scan(&mtr.ID, &mtr.Value)
+		err = row.Scan(&mtr.Value)
 	}
 
 	if err != nil {
@@ -190,7 +192,7 @@ func (db DB) BatchUpdate(metrics []metric.Metric) error {
 				INSERT INTO counter (name, value)
 				VALUES ($1, $2) 
 				ON CONFLICT(name) 
-				DO UPDATE SET value = $2;
+				DO UPDATE SET value = counter.value + $2;
 			`)
 
 	if err != nil {
