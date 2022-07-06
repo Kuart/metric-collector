@@ -12,18 +12,21 @@ var (
 	address        = "127.0.0.1:8080"
 	reportInterval = 10 * time.Second
 	pollInterval   = 2 * time.Second
+	key            = ""
 )
 
 type Config struct {
 	Address        string        `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
 	ReportInterval time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
 	PollInterval   time.Duration `env:"POLL_INTERVAL" envDefault:"2s"`
+	Key            string        `env:"KEY"`
 }
 
 type flagConfig struct {
 	Address        string
 	ReportInterval time.Duration
 	PollInterval   time.Duration
+	Key            string
 }
 
 func New() Config {
@@ -33,6 +36,7 @@ func New() Config {
 	flag.StringVar(&flagCfg.Address, "a", address, "server address")
 	flag.DurationVar(&flagCfg.ReportInterval, "r", reportInterval, "report interval")
 	flag.DurationVar(&flagCfg.PollInterval, "p", pollInterval, "poll interval")
+	flag.StringVar(&flagCfg.Key, "k", key, "key")
 	flag.Parse()
 
 	log.Printf("Agent init flags: %+v\n", flagCfg)
@@ -53,6 +57,10 @@ func New() Config {
 
 	if flagCfg.PollInterval != pollInterval && cfg.PollInterval == pollInterval {
 		cfg.PollInterval = flagCfg.PollInterval
+	}
+
+	if flagCfg.Key != key && cfg.Key == key {
+		cfg.Key = flagCfg.Key
 	}
 
 	log.Printf("Agent config: %+v\n", cfg)

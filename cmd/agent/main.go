@@ -2,6 +2,7 @@ package main
 
 import (
 	agentConfig "github.com/Kuart/metric-collector/config/agent"
+	"github.com/Kuart/metric-collector/internal/encryption"
 	"github.com/Kuart/metric-collector/internal/metric"
 	"github.com/Kuart/metric-collector/internal/sender"
 	"os"
@@ -12,7 +13,8 @@ import (
 
 func main() {
 	config := agentConfig.New()
-	client := sender.NewMetricClient(config.Address, config.PollInterval)
+	crypto := encryption.New(config.Key)
+	client := sender.NewMetricClient(config, crypto)
 
 	osSign := make(chan os.Signal, 1)
 	signal.Notify(osSign, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

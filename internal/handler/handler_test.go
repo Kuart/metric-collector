@@ -2,9 +2,8 @@ package handler
 
 import (
 	config "github.com/Kuart/metric-collector/config/server"
+	"github.com/Kuart/metric-collector/internal/encryption"
 	"github.com/Kuart/metric-collector/internal/storage"
-	"github.com/Kuart/metric-collector/internal/storage/file"
-	"github.com/Kuart/metric-collector/internal/storage/inmemory"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -36,11 +35,10 @@ func TestUpdateHandler(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			servConf := config.New()
-			inmemory := inmemory.New()
-			fileStorage := file.New(servConf)
-			controller := storage.New(servConf, inmemory, fileStorage)
+			controller := storage.New(servConf)
 
-			metricHandler := NewHandler(controller)
+			crypto := encryption.New(servConf.Key)
+			metricHandler := NewHandler(controller, crypto)
 			NewRouter(metricHandler)
 
 			h := http.HandlerFunc(metricHandler.Update)
@@ -96,11 +94,10 @@ func TestCounterHandler(t *testing.T) {
 				Address:   "127.0.0.1:8080",
 			}
 
-			inmemoryStorage := inmemory.New()
-			fileStorage := file.New(config)
-			srgController := storage.New(config, inmemoryStorage, fileStorage)
+			controller := storage.New(config)
 
-			metricHandler := NewHandler(srgController)
+			crypto := encryption.New(config.Key)
+			metricHandler := NewHandler(controller, crypto)
 			r := NewRouter(metricHandler)
 
 			r.HandleFunc(pattern, metricHandler.Counter)
@@ -155,12 +152,10 @@ func TestGaugeHandler(t *testing.T) {
 				StoreFile: "",
 				Address:   "127.0.0.1:8080",
 			}
+			controller := storage.New(config)
 
-			inmemoryStorage := inmemory.New()
-			fileStorage := file.New(config)
-			srgController := storage.New(config, inmemoryStorage, fileStorage)
-
-			metricHandler := NewHandler(srgController)
+			crypto := encryption.New(config.Key)
+			metricHandler := NewHandler(controller, crypto)
 			r := NewRouter(metricHandler)
 
 			r.HandleFunc(pattern, metricHandler.Gauge)
