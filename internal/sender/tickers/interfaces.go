@@ -7,7 +7,8 @@ type HTTPClient interface {
 }
 
 type TickerBuffer interface {
-	Write()
+	WriteCommon()
+	WriteGopsutil()
 	Clear()
 	Get() (metric.GaugeState, metric.Counter)
 }

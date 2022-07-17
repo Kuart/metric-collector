@@ -19,7 +19,7 @@ func New() BufferToSend {
 	}
 }
 
-func (bts *BufferToSend) Write() {
+func (bts *BufferToSend) WriteCommon() {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -30,6 +30,16 @@ func (bts *BufferToSend) Write() {
 	for _, item := range metric.GetGauge() {
 		bts.gaugeMetrics[item.Name] += item.Value
 	}
+}
+
+func (bts *BufferToSend) WriteGopsutil() {
+	mu.Lock()
+
+	for _, item := range metric.GetGopsutil() {
+		bts.gaugeMetrics[item.Name] += item.Value
+	}
+
+	defer mu.Unlock()
 }
 
 func (bts *BufferToSend) Clear() {

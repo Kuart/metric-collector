@@ -20,7 +20,8 @@ func main() {
 	osSign := make(chan os.Signal, 1)
 	signal.Notify(osSign, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	go tickers.StartPoll(config.PollInterval, &bufferToSend)
+	go tickers.StartCommon(config.PollInterval, &bufferToSend)
+	go tickers.StartGopsutil(config.PollInterval, &bufferToSend)
 	go tickers.StartReport(client, config.ReportInterval, &bufferToSend)
 
 	<-osSign

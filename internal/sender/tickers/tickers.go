@@ -4,11 +4,19 @@ import (
 	"time"
 )
 
-func StartPoll(interval time.Duration, buffer TickerBuffer) {
+func StartCommon(interval time.Duration, buffer TickerBuffer) {
 	ticker := time.NewTicker(interval)
 
 	for range ticker.C {
-		buffer.Write()
+		buffer.WriteCommon()
+	}
+}
+
+func StartGopsutil(interval time.Duration, buffer TickerBuffer) {
+	ticker := time.NewTicker(interval)
+
+	for range ticker.C {
+		buffer.WriteGopsutil()
 	}
 }
 

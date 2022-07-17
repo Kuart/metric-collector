@@ -1,13 +1,19 @@
 package metric
 
 import (
+	"fmt"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/mem"
+	"log"
 	"math/rand"
 	"runtime"
+	"time"
 )
 
 const (
 	GaugeTypeName   = "gauge"
 	CounterTypeName = "counter"
+	cpuTime         = 1 * time.Second
 )
 
 type Counter struct {
@@ -85,6 +91,23 @@ func GetGauge() []Gauge {
 	return gauges
 }
 
+func GetGopsutil() []Gauge {
+	gauges := []Gauge{}
+
+	v, err := mem.VirtualMemory()
+
+	if err != nil {
+		log.Printf("gopsutil VirtualMemory err: %s", err)
+	} else {
+		gauges = append(gauges, Gauge{"TotalMemory", float64(v.Total)})
+		gauges = append(gauges, Gauge{"FreeMemory", float64(v.Free)})
+	}
+
+	gauges = append(gauges, getCPUutilization()...)
+
+	return gauges
+}
+
 func GetRandomGauge() Gauge {
 	return Gauge{"RandomValue", rand.Float64()}
 }
@@ -99,4 +122,25 @@ func (counter *Counter) PollTick() {
 
 func (counter *Counter) Clear() {
 	counter.Value = 0
+}
+
+func getCPUutilization() []Gauge {
+	cpus, err := cpu.Times(true)
+	result := make([]Gauge, 0, len(cpus))
+
+	if err != nil {
+		log.Printf("gopsutil cpu.Times err: %s", err)
+		return []Gauge{}
+	}
+
+	cpuUtilization, err := cpu.Percent(cpuTime, true)
+
+	for i, v := range cpuUtilization {
+		result = append(result, Gauge{
+			Name:  fmt.Sprintf("CPUutilization%d", i+1),
+			Value: v,
+		})
+	}
+
+	return result
 }
