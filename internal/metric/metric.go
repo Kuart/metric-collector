@@ -92,7 +92,7 @@ func GetGauge() []Gauge {
 }
 
 func GetGopsutil() []Gauge {
-	gauges := []Gauge{}
+	var gauges []Gauge
 
 	v, err := mem.VirtualMemory()
 
@@ -134,6 +134,10 @@ func getCPUutilization() []Gauge {
 	}
 
 	cpuUtilization, err := cpu.Percent(cpuTime, true)
+
+	if err != nil {
+		log.Printf("gopsutil cpu.Percent err: %s", err)
+	}
 
 	for i, v := range cpuUtilization {
 		result = append(result, Gauge{
