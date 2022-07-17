@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/Kuart/metric-collector/internal/encryption"
 	"github.com/Kuart/metric-collector/internal/metric"
-	"github.com/Kuart/metric-collector/internal/storage"
 	"github.com/Kuart/metric-collector/internal/template"
 	"github.com/go-chi/chi/v5"
 	"log"
@@ -26,13 +25,7 @@ const (
 	JSONValidationError = "JSON validation fail: \"%s\""
 )
 
-type MetricHandler struct {
-	controller storage.Controller
-	validator  Validator
-	crypto     encryption.Encryption
-}
-
-func NewHandler(controller storage.Controller, c encryption.Encryption) MetricHandler {
+func NewHandler(controller Controller, c encryption.Encryption) MetricHandler {
 	return MetricHandler{
 		controller: controller,
 		crypto:     c,

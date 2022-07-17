@@ -18,26 +18,30 @@ type DB struct {
 	isConnected bool
 }
 
-func New(cfg config.Config) (DB, error) {
+func New(cfg config.Config) DB {
+	if cfg.DatabaseDSN == "" {
+		return DB{}
+	}
+
 	db, err := sql.Open("postgres", cfg.DatabaseDSN)
 
 	if err != nil {
 		log.Printf("database didn't connect: %s", err)
-		return DB{}, err
+		return DB{}
 	}
 
 	err = db.Ping()
 
 	if err != nil {
 		log.Printf("database ping error: %s", err)
-		return DB{}, err
+		return DB{}
 	}
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 
 	if err != nil {
 		log.Printf("database driver error: %s", err)
-		return DB{}, err
+		return DB{}
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
@@ -46,7 +50,7 @@ func New(cfg config.Config) (DB, error) {
 
 	if err != nil {
 		log.Printf("database migration error: %s", err)
-		return DB{}, err
+		return DB{}
 	}
 
 	m.Up()
@@ -56,7 +60,7 @@ func New(cfg config.Config) (DB, error) {
 	return DB{
 		instance:    db,
 		isConnected: true,
-	}, nil
+	}
 }
 
 func (db DB) Ping() bool {

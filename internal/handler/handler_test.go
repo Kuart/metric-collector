@@ -1,9 +1,12 @@
 package handler
 
 import (
-	config "github.com/Kuart/metric-collector/config/server"
+	serverConfig "github.com/Kuart/metric-collector/config/server"
 	"github.com/Kuart/metric-collector/internal/encryption"
 	"github.com/Kuart/metric-collector/internal/storage"
+	"github.com/Kuart/metric-collector/internal/storage/database"
+	"github.com/Kuart/metric-collector/internal/storage/file"
+	"github.com/Kuart/metric-collector/internal/storage/inmemory"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -33,11 +36,14 @@ func TestUpdateHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
+			config := serverConfig.New()
+			inmemoryStorage := inmemory.New()
+			fileStorage := file.New(config)
+			db := database.New(config)
 
-			servConf := config.New()
-			controller := storage.New(servConf)
+			controller := storage.New(config, &inmemoryStorage, &fileStorage, &db)
 
-			crypto := encryption.New(servConf.Key)
+			crypto := encryption.New(config.Key)
 			metricHandler := NewHandler(controller, crypto)
 			NewRouter(metricHandler)
 
@@ -89,13 +95,15 @@ func TestCounterHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
 
-			config := config.Config{
+			config := serverConfig.Config{
 				StoreFile: "",
 				Address:   "127.0.0.1:8080",
 			}
+			inmemoryStorage := inmemory.New()
+			fileStorage := file.New(config)
+			db := database.New(config)
 
-			controller := storage.New(config)
-
+			controller := storage.New(config, &inmemoryStorage, &fileStorage, &db)
 			crypto := encryption.New(config.Key)
 			metricHandler := NewHandler(controller, crypto)
 			r := NewRouter(metricHandler)
@@ -148,11 +156,15 @@ func TestGaugeHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
 
-			config := config.Config{
+			config := serverConfig.Config{
 				StoreFile: "",
 				Address:   "127.0.0.1:8080",
 			}
-			controller := storage.New(config)
+			inmemoryStorage := inmemory.New()
+			fileStorage := file.New(config)
+			db := database.New(config)
+
+			controller := storage.New(config, &inmemoryStorage, &fileStorage, &db)
 
 			crypto := encryption.New(config.Key)
 			metricHandler := NewHandler(controller, crypto)

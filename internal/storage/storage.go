@@ -4,39 +4,23 @@ import (
 	"context"
 	config "github.com/Kuart/metric-collector/config/server"
 	"github.com/Kuart/metric-collector/internal/metric"
-	"github.com/Kuart/metric-collector/internal/storage/database"
-	"github.com/Kuart/metric-collector/internal/storage/file"
-	"github.com/Kuart/metric-collector/internal/storage/inmemory"
 	"html/template"
 	"log"
 	"time"
 )
 
-type Controller struct {
-	inmemory inmemory.Storage
-	file     file.Storage
-	db       database.DB
-	sCfg     config.Config
-	isSync   bool
-	isUseDB  bool
-}
-
 var HTMLTemplate *template.Template
 
-func New(sCfg config.Config) Controller {
+func New(sCfg config.Config, inmemory InmemoryStorage, file FileStorage, db DataBase) Controller {
 	controller := Controller{
-		inmemory: inmemory.New(),
-		file:     file.New(sCfg),
+		inmemory: inmemory,
+		file:     file,
 		sCfg:     sCfg,
 	}
 
-	if sCfg.DatabaseDSN != "" {
-		dtb, err := database.New(sCfg)
-
-		if err == nil {
-			controller.db = dtb
-			controller.isUseDB = true
-		}
+	if db.Ping() {
+		controller.db = db
+		controller.isUseDB = true
 	}
 
 	if sCfg.Restore {
