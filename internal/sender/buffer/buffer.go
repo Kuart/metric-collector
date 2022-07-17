@@ -5,8 +5,9 @@ import (
 	"sync"
 )
 
+var mu sync.RWMutex
+
 type BufferToSend struct {
-	mu           sync.RWMutex
 	counter      metric.Counter
 	gaugeMetrics metric.GaugeState
 }
@@ -19,8 +20,8 @@ func New() BufferToSend {
 }
 
 func (bts *BufferToSend) Write() {
-	bts.mu.Lock()
-	defer bts.mu.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
 	bts.counter.PollTick()
 	randomGauge := metric.GetRandomGauge()
@@ -32,8 +33,8 @@ func (bts *BufferToSend) Write() {
 }
 
 func (bts *BufferToSend) Clear() {
-	bts.mu.Lock()
-	defer bts.mu.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
 	bts.counter = metric.GetCounter(0)
 	bts.gaugeMetrics = make(metric.GaugeState)

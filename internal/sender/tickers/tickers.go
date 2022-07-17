@@ -12,7 +12,7 @@ func StartPoll(interval time.Duration, buffer TickerBuffer) {
 	}
 }
 
-func StartReport(client HttpClient, interval time.Duration, buffer TickerBuffer) {
+func StartReport(client HTTPClient, interval time.Duration, buffer TickerBuffer) {
 	ticker := time.NewTicker(interval)
 
 	for range ticker.C {

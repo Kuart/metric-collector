@@ -2,7 +2,7 @@ package tickers
 
 import "github.com/Kuart/metric-collector/internal/metric"
 
-type HttpClient interface {
+type HTTPClient interface {
 	SendMetrics(gauge metric.GaugeState, counter metric.Counter)
 }
 
