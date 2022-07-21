@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	config "github.com/Kuart/metric-collector/config/agent"
-	"github.com/Kuart/metric-collector/internal/encryption"
 	"github.com/Kuart/metric-collector/internal/metric"
 	"log"
 	"net/http"
 )
 
-func NewMetricClient(config config.Config, crypto encryption.Encryption) *Client {
+func NewMetricClient(config config.Config, crypto EncryptionClient) *Client {
 	updatePath := fmt.Sprintf("http://%s/update", config.Address)
 	batchUpdatePath := fmt.Sprintf("http://%s/updates", config.Address)
 	pingPath := fmt.Sprintf("http://%s/ping", config.Address)
